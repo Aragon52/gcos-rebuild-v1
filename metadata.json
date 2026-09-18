@@ -1,0 +1,6 @@
+{
+  "name": "GCOS | Global Online Marketplace",
+  "description": "Shop premium products from verified sellers worldwide. Discover reseller stores, enjoy secure checkout, and get world-class customer support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

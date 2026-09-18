@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS admin_audit_logs_created_at_desc_idx ON public.admin_audit_logs (created_at DESC);

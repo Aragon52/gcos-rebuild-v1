@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /account
+Disallow: /cart
+Disallow: /orders
+Disallow: /reseller
+
+Sitemap: https://globalcart-onlineshop.com/sitemap.xml
+Manifest: /manifest.json
