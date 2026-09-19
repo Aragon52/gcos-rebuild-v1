@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import OnramperWidget from "@/components/payment/OnramperWidget";
 
 
 const cryptoIcons = [
@@ -260,63 +261,117 @@ export default function Account() {
 
                 {/* Shipping & Payment Sub-tab */}
                 {profileSubTab === "shipping" && (
-                  <div className="space-y-4">
-                    {/* Global Payment */}
-                    <div className="rounded-xl border border-border bg-card p-6">
+                  <div className="space-y-6">
+                    {/* Payment & Deposit Options */}
+                    <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <Wallet className="h-5 w-5 text-primary" />
+                          <CreditCard className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <h3 className="text-base font-bold text-foreground">{t('common.globalPayment')}</h3>
-                          <p className="text-xs text-muted-foreground">{t('common.paySecurelyWithCrypto')}</p>
+                          <h3 className="text-base font-bold text-foreground">Deposit & Payment Methods</h3>
+                          <p className="text-xs text-muted-foreground">Choose your preferred deposit channel: Instant Card via Onramper or Crypto USDT</p>
                         </div>
                       </div>
-                      <Separator className="mb-4" />
 
-                      <div className="space-y-3">
-                        {/* Get Wallet Address Button */}
-                        <div>
-                          <Button
-                            variant="outline"
-                            className="w-full gap-2 justify-center border-primary/30 text-primary hover:bg-primary/5"
-                            onClick={() => setShowWalletModal(true)}
-                          >
-                            <Wallet className="h-4 w-4" />
-                            {t('common.getWalletAddress')}
-                          </Button>
-                        </div>
+                      <Tabs defaultValue="card" className="w-full">
+                        <TabsList className="grid grid-cols-3 w-full mb-4 bg-muted/80 p-1 rounded-xl">
+                          <TabsTrigger value="card" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                            <CreditCard className="h-3.5 w-3.5 text-primary" />
+                            <span>Card (Instant)</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="crypto" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                            <Wallet className="h-3.5 w-3.5 text-amber-500" />
+                            <span>Crypto USDT</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="local" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                            <Headphones className="h-3.5 w-3.5 text-purple-500" />
+                            <span>Local Wire</span>
+                          </TabsTrigger>
+                        </TabsList>
 
-                        <div className="pt-2">
-                          <Button variant="outline" className="w-full gap-2 justify-center" asChild>
-                            <a href="mailto:support@example.com">
-                              <Headphones className="h-4 w-4" />
-                              {t('common.getSupport247')}
-                            </a>
-                          </Button>
-                        </div>
+                        {/* Onramper Card Widget */}
+                        <TabsContent value="card" className="mt-0 focus-visible:outline-none">
+                          <OnramperWidget
+                            resellerDocId={user.id}
+                            walletAddress={depositAddress}
+                            initialAmount={50}
+                            defaultCrypto="usdt_tron"
+                          />
+                        </TabsContent>
 
-                        <div className="rounded-lg bg-muted/50 border border-border p-4 text-center">
-                          <p className="text-xs font-medium text-muted-foreground mb-3">
-                            {t('common.empoweredByBlockchain')}
-                          </p>
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            {cryptoIcons.map((crypto) => (
-                              <div
-                                key={crypto.name}
-                                className="flex h-7 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5"
-                              >
-                                <img
-                                  src={crypto.icon}
-                                  alt={crypto.name}
-                                  className="h-4 w-4"
-                                />
-                                <span className="text-[10px] font-bold text-muted-foreground">{crypto.name}</span>
+                        {/* Crypto Deposit */}
+                        <TabsContent value="crypto" className="mt-0 space-y-4 focus-visible:outline-none">
+                          <div className="rounded-xl border border-border bg-muted/30 p-4 sm:p-5 space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                                <Wallet className="h-4 w-4 text-primary" />
                               </div>
-                            ))}
+                              <div>
+                                <h4 className="text-sm font-bold text-foreground">{t('common.globalPayment')}</h4>
+                                <p className="text-xs text-muted-foreground">{t('common.paySecurelyWithCrypto')}</p>
+                              </div>
+                            </div>
+                            <Separator />
+
+                            <div className="space-y-3">
+                              <Button
+                                variant="outline"
+                                className="w-full gap-2 justify-center border-primary/30 text-primary hover:bg-primary/5"
+                                onClick={() => setShowWalletModal(true)}
+                              >
+                                <Wallet className="h-4 w-4" />
+                                {t('common.getWalletAddress')}
+                              </Button>
+
+                              <div className="rounded-lg bg-card border border-border p-3 text-center">
+                                <p className="text-[11px] font-medium text-muted-foreground mb-2">
+                                  {t('common.empoweredByBlockchain')}
+                                </p>
+                                <div className="flex flex-wrap items-center justify-center gap-2">
+                                  {cryptoIcons.map((crypto) => (
+                                    <div
+                                      key={crypto.name}
+                                      className="flex h-7 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5"
+                                    >
+                                      <img
+                                        src={crypto.icon}
+                                        alt={crypto.name}
+                                        className="h-4 w-4"
+                                      />
+                                      <span className="text-[10px] font-bold text-muted-foreground">{crypto.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        </TabsContent>
+
+                        {/* Local Wire Transfer */}
+                        <TabsContent value="local" className="mt-0 focus-visible:outline-none">
+                          <div className="rounded-xl border border-border bg-muted/30 p-4 sm:p-5 space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
+                                <CreditCard className="h-4 w-4 text-accent-foreground" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-foreground">{t('common.payInLocal')}</h4>
+                                <p className="text-xs text-muted-foreground">{t('common.payInLocalDesc')}</p>
+                              </div>
+                            </div>
+                            <Separator />
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {t('common.payInLocalAdvised')}
+                            </p>
+                            <Button variant="outline" className="w-full gap-2 justify-center" asChild>
+                              <a href="mailto:support@example.com">
+                                <Headphones className="h-4 w-4" /> {t('common.contactFinancialExpert')}
+                              </a>
+                            </Button>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                     </div>
 
                     {/* USDT-TRC20 Wallet Modal */}
@@ -368,29 +423,6 @@ export default function Account() {
                         </div>
                       </DialogContent>
                     </Dialog>
-
-                    {/* Pay in Local */}
-                    <div className="rounded-xl border border-border bg-card p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-                          <CreditCard className="h-5 w-5 text-accent-foreground" />
-                        </div>
-                        <div>
-                          <h3 className="text-base font-bold text-foreground">{t('common.payInLocal')}</h3>
-                          <p className="text-xs text-muted-foreground">{t('common.payInLocalDesc')}</p>
-                        </div>
-                      </div>
-                      <Separator className="mb-4" />
-                      <div className="rounded-lg bg-muted/50 border border-border p-4">
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {t('common.payInLocalAdvised')}
-                        </p>
-                        <Button variant="outline" className="mt-3 gap-2" asChild>
-                          <a href="mailto:support@example.com">
-                            <Headphones className="h-4 w-4" /> {t('common.contactFinancialExpert')}
-                          </a>
-                        </Button>
-                    </div>
 
                     {/* Shipping Address */}
                     <div className="rounded-xl border border-border bg-card p-6">
@@ -483,7 +515,6 @@ export default function Account() {
                         </div>
                       )}
                     </div>
-                  </div>
                   </div>
                 )}
               </div>

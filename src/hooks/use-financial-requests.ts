@@ -10,7 +10,7 @@ export interface DepositRequest {
   resellerName: string;
   amount: number;
   status: "Pending" | "Approved" | "Rejected";
-  method: "Bank Transfer" | "USDT (TRC20)";
+  method: "Bank Transfer" | "USDT (TRC20)" | "Credit/Debit Card" | "Credit/Debit Card (Onramper)" | string;
   bankInfo?: {
     bankName: string;
     accountName: string;
@@ -75,11 +75,25 @@ export function useDepositRequests() {
         
         if (error) throw error;
         
-        return (data || []).map(item => ({
-          ...item,
-          proofImage: item.screenshot || item.proofImage || "",
-          createdAt: item.createdAt || item.created_at
-        })) as DepositRequest[];
+        return (data || []).map(item => {
+          let method = item.method;
+          if (!method) {
+            const rem = (item.remark || "").toLowerCase();
+            if (rem.includes("card") || rem.includes("onramper") || rem.includes("visa") || rem.includes("mastercard")) {
+              method = "Credit/Debit Card (Onramper)";
+            } else if (rem.includes("bank") || rem.includes("wire")) {
+              method = "Bank Transfer";
+            } else {
+              method = "USDT (TRC20)";
+            }
+          }
+          return {
+            ...item,
+            method,
+            proofImage: item.screenshot || item.proofImage || "",
+            createdAt: item.createdAt || item.created_at
+          };
+        }) as DepositRequest[];
       } catch (error) {
         console.error("Error fetching deposit requests:", error);
         return [];

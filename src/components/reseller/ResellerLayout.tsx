@@ -13,6 +13,8 @@ import { useUnreadSupport } from "@/hooks/use-support";
 import { resellerPath } from "@/lib/subdomain";
 import { supabase } from "@/lib/supabase";
 import PromotionalBonusBanner from "./PromotionalBonusBanner";
+import DepositAlertBanner from "./DepositAlertBanner";
+import { useDepositAlerts } from "@/hooks/use-deposit-alerts";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 
 const PUBLIC_PATHS_CANONICAL = ["/reseller/login", "/reseller/register"];
@@ -28,6 +30,9 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadNotifs = useUnreadCount();
   const unreadSupport = useUnreadSupport();
+
+  // Real-time listener for deposit status approvals and balance updates
+  useDepositAlerts();
 
   const isPublic = useMemo(() => {
     const norm = pathname.replace(/\/$/, "") || "/";
@@ -155,6 +160,7 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
             </button>
           </div>
         </header>
+        <DepositAlertBanner />
         <main className="flex-1 pb-16 md:pb-0">{children}</main>
         <ResellerBottomNav />
       </div>

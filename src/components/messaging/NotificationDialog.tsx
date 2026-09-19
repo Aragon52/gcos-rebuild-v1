@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Bell } from 'lucide-react';
+import { X, Bell, Wallet, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { markAsRead, type SystemNotification } from '@/hooks/use-notifications';
 import { useReseller } from '@/lib/reseller-context-hooks';
 import { detectPortal } from '@/lib/subdomain';
+import { Badge } from '@/components/ui/badge';
 
 export default function NotificationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { reseller } = useReseller();
@@ -136,20 +137,51 @@ export default function NotificationDialog({ open, onClose }: { open: boolean; o
               No notifications yet
             </div>
           ) : (
-            (notifications as NotifItem[]).map((n) => (
-              <button
-                key={n.id}
-                onClick={() => setSelectedNotif(n)}
-                className="w-full text-left rounded-xl bg-muted/50 p-3 space-y-1 hover:bg-accent/50 transition-colors"
-              >
-                <p className="font-semibold text-sm text-foreground">{n.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{n.message}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-primary font-medium">{n.department}</span>
-                  <span className="text-[10px] text-muted-foreground/60">{new Date(n.timestamp).toLocaleDateString()}</span>
-                </div>
-              </button>
-            ))
+            (notifications as NotifItem[]).map((n) => {
+              const isDepositApproved = n.type === "deposit_approved";
+              const isDepositRejected = n.type === "deposit_rejected";
+
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => setSelectedNotif(n)}
+                  className={`w-full text-left rounded-xl p-3 space-y-1.5 transition-colors border ${
+                    isDepositApproved
+                      ? "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/15"
+                      : isDepositRejected
+                      ? "bg-destructive/10 border-destructive/20 hover:bg-destructive/15"
+                      : "bg-muted/50 border-transparent hover:bg-accent/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isDepositApproved ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                      ) : isDepositRejected ? (
+                        <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+                      ) : (
+                        <Bell className="h-4 w-4 text-primary flex-shrink-0" />
+                      )}
+                      <p className="font-semibold text-sm text-foreground truncate">{n.title}</p>
+                    </div>
+                    {isDepositApproved ? (
+                      <Badge variant="outline" className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[9px] py-0 px-1.5 font-bold flex-shrink-0">
+                        Approved
+                      </Badge>
+                    ) : isDepositRejected ? (
+                      <Badge variant="outline" className="bg-destructive/20 text-destructive border-destructive/30 text-[9px] py-0 px-1.5 font-bold flex-shrink-0">
+                        Rejected
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{n.message}</p>
+                  <div className="flex items-center justify-between pt-0.5">
+                    <span className="text-[10px] text-primary font-medium">{n.department}</span>
+                    <span className="text-[10px] text-muted-foreground/60">{new Date(n.timestamp).toLocaleDateString()}</span>
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </div>

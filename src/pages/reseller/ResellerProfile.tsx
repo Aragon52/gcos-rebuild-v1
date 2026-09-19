@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useReseller, LEVEL_PROFIT_MAP } from "@/lib/reseller-context-hooks";
-import { Palette, ChevronRight, Wallet, ArrowDownToLine, ArrowUpFromLine, Clock, LogOut, Package, Store } from "lucide-react";
+import { Palette, ChevronRight, Wallet, ArrowDownToLine, ArrowUpFromLine, Clock, LogOut, Package, Store, CreditCard, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const LEVEL_BADGE_MAP: Record<string, number> = {
@@ -27,13 +27,20 @@ export default function ResellerProfile() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showDeposit, setShowDeposit] = useState(false);
+  const [depositTab, setDepositTab] = useState<"card" | "crypto" | "local">("card");
   const [showWithdrawal, setShowWithdrawal] = useState(false);
   const [searchParams] = useSearchParams();
   const suggestedAmount = searchParams.get("amount") ?? "";
 
   // Open the deposit sheet directly when arriving from the bonus banner
   useEffect(() => {
-    if (searchParams.get("deposit") === "1") setShowDeposit(true);
+    if (searchParams.get("deposit") === "1") {
+      const method = searchParams.get("method");
+      if (method === "crypto" || method === "local" || method === "card") {
+        setDepositTab(method);
+      }
+      setShowDeposit(true);
+    }
   }, [searchParams]);
 
   // Derive verification status: unverified (missing info), pending (info filled, awaiting admin), verified
@@ -126,12 +133,33 @@ export default function ResellerProfile() {
 
 
         <div className="grid grid-cols-2 gap-3 pt-1">
-          <Button className="gap-2 rounded-xl" onClick={() => setShowDeposit(true)}>
-            <ArrowDownToLine className="h-4 w-4" />
-            {t("reseller.deposit")}
+          <Button
+            className="gap-2 rounded-xl"
+            onClick={() => {
+              setDepositTab("card");
+              setShowDeposit(true);
+            }}
+          >
+            <CreditCard className="h-4 w-4" />
+            <span>Card Deposit</span>
+            <span className="text-[10px] bg-primary-foreground/20 px-1 py-0.2 rounded font-semibold">Fast</span>
           </Button>
-          <Button variant="outline" className="gap-2 rounded-xl border-border" onClick={() => setShowWithdrawal(true)}>
-            <ArrowUpFromLine className="h-4 w-4" />
+          <Button
+            variant="outline"
+            className="gap-2 rounded-xl border-border"
+            onClick={() => {
+              setDepositTab("crypto");
+              setShowDeposit(true);
+            }}
+          >
+            <ArrowDownToLine className="h-4 w-4" />
+            <span>{t("reseller.deposit")} (USDT)</span>
+          </Button>
+        </div>
+
+        <div className="pt-0.5">
+          <Button variant="ghost" size="sm" className="w-full gap-2 rounded-xl border border-dashed border-border text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowWithdrawal(true)}>
+            <ArrowUpFromLine className="h-3.5 w-3.5" />
             {t("reseller.withdrawal")}
           </Button>
         </div>
@@ -199,7 +227,7 @@ export default function ResellerProfile() {
       </div>
 
       {/* Deposit Bottom Sheet */}
-      <ResellerDepositSheet open={showDeposit} onOpenChange={setShowDeposit} initialAmount={suggestedAmount} />
+      <ResellerDepositSheet open={showDeposit} onOpenChange={setShowDeposit} initialAmount={suggestedAmount} defaultTab={depositTab} />
 
       {/* Withdrawal Bottom Sheet */}
       <ResellerWithdrawalSheet open={showWithdrawal} onOpenChange={setShowWithdrawal} />

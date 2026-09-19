@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Copy, Wallet, CreditCard, Headphones, AlertTriangle, Upload, ImageIcon } from "lucide-react";
+import { Copy, Wallet, CreditCard, Headphones, AlertTriangle, Upload, ImageIcon, Zap, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { parseSettingValue, type DepositConfig } from "@/lib/system-settings";
 import { useReseller } from "@/lib/reseller-context-hooks";
 import { useTranslation } from "react-i18next";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import OnramperWidget from "@/components/payment/OnramperWidget";
 import {
   Sheet,
   SheetContent,
@@ -42,12 +44,15 @@ interface ResellerDepositSheetProps {
   onOpenChange: (open: boolean) => void;
   /** Optional amount used to pre-fill the deposit field when the sheet opens. */
   initialAmount?: string;
+  /** Initial tab to open ("card" | "crypto" | "local") */
+  defaultTab?: "card" | "crypto" | "local";
 }
 
-export default function ResellerDepositSheet({ open, onOpenChange, initialAmount }: ResellerDepositSheetProps) {
+export default function ResellerDepositSheet({ open, onOpenChange, initialAmount, defaultTab = "card" }: ResellerDepositSheetProps) {
   const { reseller } = useReseller();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletCopied, setWalletCopied] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
@@ -98,7 +103,8 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
   // Pre-fill the amount when the sheet is opened with a suggested value
   useEffect(() => {
     if (open && initialAmount) setDepositAmount(initialAmount);
-  }, [open, initialAmount]);
+    if (open && defaultTab) setActiveTab(defaultTab);
+  }, [open, initialAmount, defaultTab]);
 
   const handleCopyWallet = () => {
     navigator.clipboard.writeText(depositAddress);
@@ -136,9 +142,6 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
 
       const proofImageUrl = screenshot || "";
 
-      // In a real app, we'd upload to Supabase Storage here.
-      // For now, if we have a screenshot, we'll store it as base64 or assuming it would be handled.
-
       const { error } = await supabase
         .from("deposit_requests")
         .insert({
@@ -168,141 +171,177 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto px-4 pb-8">
-          <SheetHeader className="pb-3">
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[92vh] overflow-y-auto px-4 pb-8 max-w-xl mx-auto">
+          <SheetHeader className="pb-3 text-left">
             <SheetTitle className="text-base font-bold text-foreground">{t("reseller.depositFunds")}</SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground">
-              {t("reseller.submitDepositRequest")}
+              Select your preferred deposit channel: Instant Credit/Debit Card via Onramper or direct Crypto transfer.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="space-y-4">
-            {/* Global Payment */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Wallet className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">{t("reseller.globalPayment")}</h3>
-                  <p className="text-xs text-muted-foreground">{t("reseller.paySecurelyWithCrypto")}</p>
-                </div>
-              </div>
-              <Separator className="mb-4" />
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-3 w-full mb-4 bg-muted/80 p-1 rounded-xl">
+              <TabsTrigger value="card" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <CreditCard className="h-3.5 w-3.5 text-primary" />
+                <span>Card (Instant)</span>
+              </TabsTrigger>
+              <TabsTrigger value="crypto" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Wallet className="h-3.5 w-3.5 text-amber-500" />
+                <span>Crypto USDT</span>
+              </TabsTrigger>
+              <TabsTrigger value="local" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Headphones className="h-3.5 w-3.5 text-purple-500" />
+                <span>Local / Wire</span>
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="space-y-3">
-                {/* Deposit Amount */}
-                <div>
-                  <Label htmlFor="deposit-amount" className="text-xs text-muted-foreground">{t("reseller.depositAmount")}</Label>
-                  <Input
-                    id="deposit-amount"
-                    type="number"
-                    placeholder={t("reseller.enterAmountInUsd")}
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    className="mt-1 rounded-xl"
-                  />
+            {/* TAB 1: Direct Card / Apple Pay / Google Pay via Onramper */}
+            <TabsContent value="card" className="mt-0 focus-visible:outline-none">
+              <OnramperWidget
+                resellerDocId={reseller?.id}
+                walletAddress={depositAddress}
+                initialAmount={depositAmount ? parseFloat(depositAmount) : 100}
+                defaultCrypto="usdt_tron"
+                onDepositSubmitted={() => {
+                  onOpenChange(false);
+                }}
+              />
+            </TabsContent>
+
+            {/* TAB 2: Crypto Direct Address & Proof */}
+            <TabsContent value="crypto" className="mt-0 space-y-4 focus-visible:outline-none">
+              <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Wallet className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">{t("reseller.globalPayment")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("reseller.paySecurelyWithCrypto")}</p>
+                  </div>
                 </div>
+                <Separator />
 
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 justify-center border-primary/30 text-primary hover:bg-primary/5"
-                  onClick={() => setShowWalletModal(true)}
-                >
-                  <Wallet className="h-4 w-4" />
-                  {t("reseller.getWalletAddress")}
-                </Button>
+                <div className="space-y-3">
+                  {/* Deposit Amount */}
+                  <div>
+                    <Label htmlFor="deposit-amount" className="text-xs text-muted-foreground">{t("reseller.depositAmount")}</Label>
+                    <Input
+                      id="deposit-amount"
+                      type="number"
+                      placeholder={t("reseller.enterAmountInUsd")}
+                      value={depositAmount}
+                      onChange={(e) => setDepositAmount(e.target.value)}
+                      className="mt-1 rounded-xl"
+                    />
+                  </div>
 
-                {/* Transaction Screenshot */}
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("reseller.transactionProof")}</Label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="mt-1 flex items-center gap-3 rounded-xl border border-dashed border-input bg-background px-4 py-3 cursor-pointer hover:border-primary/40 transition-colors"
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 justify-center border-primary/30 text-primary hover:bg-primary/5"
+                    onClick={() => setShowWalletModal(true)}
                   >
-                    {screenshot ? (
-                      <>
-                        <img src={screenshot} alt="Screenshot" className="h-10 w-10 rounded-lg object-cover border border-border" />
-                        <span className="text-sm text-foreground truncate flex-1">{screenshotName}</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                          <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    <Wallet className="h-4 w-4" />
+                    {t("reseller.getWalletAddress")}
+                  </Button>
+
+                  {/* Transaction Screenshot */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t("reseller.transactionProof")}</Label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-1 flex items-center gap-3 rounded-xl border border-dashed border-input bg-background px-4 py-3 cursor-pointer hover:border-primary/40 transition-colors"
+                    >
+                      {screenshot ? (
+                        <>
+                          <img src={screenshot} alt="Screenshot" className="h-10 w-10 rounded-lg object-cover border border-border" />
+                          <span className="text-sm text-foreground truncate flex-1">{screenshotName}</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <span className="text-sm text-muted-foreground">{t("reseller.attachTransactionScreenshot")}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Submit */}
+                  <Button
+                    className="w-full rounded-xl gap-2"
+                    disabled={!canSubmit || submitting}
+                    onClick={handleSubmitDeposit}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {submitting ? t("common.submitting") : t("reseller.submitDeposit")}
+                  </Button>
+
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("card")}
+                      className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-1"
+                    >
+                      <CreditCard className="h-3 w-3" />
+                      Want to pay directly with Credit/Debit card instead? Click here
+                    </button>
+                  </div>
+
+                  <div className="rounded-lg bg-muted/50 border border-border p-4 text-center mt-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-3">
+                      {t("reseller.empoweredByBlockchain")}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {cryptoIcons.map((crypto) => (
+                        <div
+                          key={crypto.name}
+                          className="flex h-7 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5"
+                        >
+                          <img src={crypto.icon} alt={crypto.name} className="h-4 w-4" />
+                          <span className="text-[10px] font-bold text-muted-foreground">{crypto.name}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{t("reseller.attachTransactionScreenshot")}</span>
-                      </>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 </div>
+              </div>
+            </TabsContent>
 
-                {/* Submit */}
-                <Button
-                  className="w-full rounded-xl gap-2"
-                  disabled={!canSubmit || submitting}
-                  onClick={handleSubmitDeposit}
-                >
-                  <Upload className="h-4 w-4" />
-                  {submitting ? t("common.submitting") : t("reseller.submitDeposit")}
-                </Button>
-
-                <Button variant="outline" className="w-full gap-2 justify-center" asChild>
-                  <a href="mailto:support@example.com">
-                    <Headphones className="h-4 w-4" />
-                    {t("reseller.getSupport247")}
-                  </a>
-                </Button>
-
-                <div className="rounded-lg bg-muted/50 border border-border p-4 text-center">
-                  <p className="text-xs font-medium text-muted-foreground mb-3">
-                    {t("reseller.empoweredByBlockchain")}
+            {/* TAB 3: Local Wire / Bank Transfer */}
+            <TabsContent value="local" className="mt-0 focus-visible:outline-none">
+              <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
+                    <CreditCard className="h-5 w-5 text-accent-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">{t("reseller.payInLocal")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("reseller.payInLocalDesc")}</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-3">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {t("reseller.payInLocalAdvised")}
                   </p>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    {cryptoIcons.map((crypto) => (
-                      <div
-                        key={crypto.name}
-                        className="flex h-7 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5"
-                      >
-                        <img src={crypto.icon} alt={crypto.name} className="h-4 w-4" />
-                        <span className="text-[10px] font-bold text-muted-foreground">{crypto.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <Button variant="outline" className="w-full gap-2 justify-center" asChild>
+                    <a href="mailto:support@example.com">
+                      <Headphones className="h-4 w-4" /> {t("reseller.contactFinancialExpert")}
+                    </a>
+                  </Button>
                 </div>
               </div>
-            </div>
-
-            {/* Pay in Local */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-                  <CreditCard className="h-5 w-5 text-accent-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">{t("reseller.payInLocal")}</h3>
-                  <p className="text-xs text-muted-foreground">{t("reseller.payInLocalDesc")}</p>
-                </div>
-              </div>
-              <Separator className="mb-4" />
-              <div className="rounded-lg bg-muted/50 border border-border p-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {t("reseller.payInLocalAdvised")}
-                </p>
-                <Button variant="outline" className="mt-3 gap-2" asChild>
-                  <a href="mailto:support@example.com">
-                    <Headphones className="h-4 w-4" /> {t("reseller.contactFinancialExpert")}
-                  </a>
-                </Button>
-              </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </SheetContent>
       </Sheet>
 
@@ -348,6 +387,20 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
           <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <p className="text-xs text-destructive leading-relaxed" dangerouslySetInnerHTML={{ __html: t("reseller.makeSureSendOnlyUsdt") }} />
+          </div>
+
+          <div className="pt-2">
+            <Button
+              className="w-full text-xs gap-1.5"
+              variant="secondary"
+              onClick={() => {
+                setShowWalletModal(false);
+                setActiveTab("card");
+              }}
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              Or Pay Directly with Debit / Credit Card
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
