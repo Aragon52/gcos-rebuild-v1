@@ -1,9 +1,19 @@
 import React from 'react';
+import SEO from '@/components/SEO';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
 export default function ContactUs() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <SEO
+        title="Contact Customer Support & Inquiries"
+        description="Need assistance with an order, reseller store, or product inquiry? Contact GCOS 24/7 customer support."
+        canonical="https://globalcart-onlineshop.com/contact"
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Contact Us", item: "/contact" },
+        ]}
+      />
       <h1 className="text-3xl font-bold mb-8 text-center">Contact Us</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         <div>

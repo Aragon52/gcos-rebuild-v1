@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "@/lib/router-compat";
+import SEO from "@/components/SEO";
 import { Search, SlidersHorizontal, Grid3X3, List, Star, X, ChevronDown } from "lucide-react";
 import { useProducts } from "@/lib/products-context-hooks";
 import { useTranslation } from "react-i18next";
@@ -288,8 +289,21 @@ export default function Categories() {
   const visible = filtered.slice(0, itemsToShow);
   const hasMore = filtered.length > itemsToShow;
 
+  const activeCategoryName = selectedCategory !== "all" 
+    ? (categories.find(c => c.slug === selectedCategory)?.name || selectedCategory.replace("-", " "))
+    : "All Categories";
+
   return (
     <div className="min-h-[70vh]">
+      <SEO
+        title={selectedCategory !== "all" ? `${activeCategoryName} - Products` : "Browse Categories & Products"}
+        description={`Explore premium products in ${activeCategoryName} on GCOS Global Marketplace. Compare prices, ratings, and verified seller offers.`}
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Categories", item: "/categories" },
+          ...(selectedCategory !== "all" ? [{ name: activeCategoryName, item: `/categories?cat=${selectedCategory}` }] : [])
+        ]}
+      />
       {/* Category Slideshow Banner */}
       <CategorySlideshow categories={categories} />
 

@@ -1,4 +1,5 @@
 import React from "react";
+import SEO from "@/components/SEO";
 import { HeroBanner } from "@/components/home/HeroBanner";
 import { ProductCategories } from "@/components/home/ProductCategories";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
@@ -49,6 +50,12 @@ export default function Index() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <SEO
+        title="GCOS | Global Online Marketplace"
+        description="Shop premium products from verified sellers worldwide. Discover reseller stores, enjoy secure checkout, and get world-class customer support."
+        canonical="https://globalcart-onlineshop.com/"
+        ogType="website"
+      />
       <SeasonalDecorations />
       <HeroBanner />
       <TrustSection />

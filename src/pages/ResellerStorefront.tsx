@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "@/lib/router-compat";
 import { useTranslation } from "react-i18next";
+import SEO from "@/components/SEO";
 import { useReseller, type StoreTheme, type ResellerProfile, LEVEL_PROFIT_MAP } from "@/lib/reseller-context-hooks";
 import { useProducts } from "@/lib/products-context-hooks";
 import { ShoppingCart, Star, Store } from "lucide-react";
@@ -132,6 +133,24 @@ export default function ResellerStorefront() {
 
   return (
     <div className={theme.wrapper}>
+      <SEO
+        title={`${shop.shopName} | Verified Reseller Store`}
+        description={shop.shopDescription || `Shop exclusive products curated by ${shop.shopName} on GCOS Global Marketplace. Fast worldwide shipping & buyer protection.`}
+        ogImage={shop.shopHeroBanner || shop.shopLogo}
+        ogImageAlt={shop.shopName}
+        resellerStore={{
+          name: shop.shopName,
+          description: shop.shopDescription,
+          image: shop.shopHeroBanner || shop.shopLogo,
+          ownerName: shop.firstName && shop.lastName ? `${shop.firstName} ${shop.lastName}` : undefined,
+          url: `https://globalcart-onlineshop.com/store/${shop.shopSlug}`,
+        }}
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Stores", item: "/" },
+          { name: shop.shopName, item: `/store/${shop.shopSlug}` },
+        ]}
+      />
       {/* Hero Banner */}
       <div className="relative w-full aspect-[21/9] md:aspect-[21/7] overflow-hidden">
         {shop.shopHeroBanner ? (

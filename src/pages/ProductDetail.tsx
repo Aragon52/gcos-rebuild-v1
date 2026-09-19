@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useParams, Link, useSearchParams } from "@/lib/router-compat";
 import { useTranslation } from "react-i18next";
+import SEO from "@/components/SEO";
 import {
   Star, Heart, Share2, ShoppingCart, Minus, Plus,
   ChevronRight, Truck, ShieldCheck, RotateCcw, ThumbsUp,
@@ -184,6 +185,32 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title={adjustedProduct.name}
+        description={adjustedProduct.description || `${adjustedProduct.name} - Shop at GCOS Global Marketplace with fast delivery and buyer protection.`}
+        ogType="product"
+        ogImage={adjustedProduct.image}
+        ogImageAlt={adjustedProduct.name}
+        product={{
+          name: adjustedProduct.name,
+          description: adjustedProduct.description,
+          price: adjustedProduct.price,
+          currency: "USD",
+          availability: adjustedProduct.inStock !== false ? "InStock" : "OutOfStock",
+          brand: adjustedProduct.brand || "GCOS Verified",
+          sku: adjustedProduct.id,
+          category: adjustedProduct.category || "Uncategorized",
+          rating: avgRating,
+          reviewCount: reviews.length,
+          images: gallery,
+        }}
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Categories", item: "/categories" },
+          { name: (adjustedProduct.category || "Uncategorized").replace("-", " "), item: `/categories?cat=${adjustedProduct.category || "Uncategorized"}` },
+          { name: adjustedProduct.name, item: `/products/${adjustedProduct.id}` },
+        ]}
+      />
       {/* Breadcrumb */}
       <div className="mx-auto max-w-7xl px-4 py-3 md:px-8">
         <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">

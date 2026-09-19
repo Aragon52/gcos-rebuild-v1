@@ -1,9 +1,19 @@
 import React from 'react';
+import SEO from '@/components/SEO';
 import { ShoppingBag, Globe, Users, ShieldCheck } from 'lucide-react';
 
 export default function AboutUs() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <SEO
+        title="About Us - Our Mission & Vision"
+        description="Learn more about GCOS GlobalCart Online Shop - Connecting verified merchants with global shoppers through a secure, premium marketplace."
+        canonical="https://globalcart-onlineshop.com/about"
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "About Us", item: "/about" },
+        ]}
+      />
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-4 text-foreground">About GlobalCart</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
