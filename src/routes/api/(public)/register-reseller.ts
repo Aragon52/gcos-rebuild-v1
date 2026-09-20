@@ -53,7 +53,32 @@ export const Route = createFileRoute("/api/(public)/register-reseller")({
           }
 
           try {
-            const { error: userError } = await supabase.from("users").insert({
+            const shopNameVal = shopName || `${firstName}'s Store`;
+            const shopSlug = shopNameVal.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+            const referralId = "GC-" + userId.substring(0, 4).toUpperCase();
+
+            // Run initial database operations concurrently to minimize registration latency
+            const referralLookupPromise = (async () => {
+              if (!referralCode) return { staffId: null, adminId: null };
+              const cleanCode = referralCode.trim().toUpperCase();
+              const { data: staffData } = await supabase
+                .from("sla_staff")
+                .select("id, created_by_admin_id")
+                .eq("referral_id", cleanCode)
+                .maybeSingle();
+
+              if (staffData) {
+                return { staffId: staffData.id, adminId: staffData.created_by_admin_id };
+              }
+              const { data: adminData } = await supabase
+                .from("sla_admins")
+                .select("id")
+                .eq("account_id", cleanCode)
+                .maybeSingle();
+              return { staffId: null, adminId: adminData?.id || null };
+            })();
+
+            const userInsertPromise = supabase.from("users").insert({
               id: userId,
               email: isPhone ? null : normalizedEmail,
               first_name: firstName,
@@ -61,77 +86,64 @@ export const Route = createFileRoute("/api/(public)/register-reseller")({
               role: "reseller",
               created_at: new Date().toISOString(),
             });
-            if (userError) throw userError;
 
-            const shopNameVal = shopName || `${firstName}'s Store`;
-            const shopSlug = shopNameVal.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-            const referralId = "GC-" + userId.substring(0, 4).toUpperCase();
-
-            const { data: lastReseller } = await supabase
+            const lastResellerPromise = supabase
               .from("reseller_profiles")
               .select("reseller_id")
               .order("reseller_id", { ascending: false })
               .limit(1)
               .maybeSingle();
 
-            const lastResellerId = (lastReseller as { reseller_id?: number } | null)?.reseller_id || 25030;
+            const [userResult, lastResellerResult, referralResult] = await Promise.all([
+              userInsertPromise,
+              lastResellerPromise,
+              referralLookupPromise,
+            ]);
+
+            if (userResult.error) throw userResult.error;
+
+            const lastReseller = lastResellerResult.data as { reseller_id?: number } | null;
+            const lastResellerId = lastReseller?.reseller_id || 25030;
             const newResellerId = lastResellerId + 1;
+            const referredByStaffId = referralResult.staffId;
+            const memberOfAdminId = referralResult.adminId;
 
-            let referredByStaffId: string | null = null;
-            let memberOfAdminId: string | null = null;
-            if (referralCode) {
-              const { data: staffData } = await supabase
-                .from("sla_staff")
-                .select("id, created_by_admin_id")
-                .eq("referral_id", referralCode.trim().toUpperCase())
-                .maybeSingle();
+            const uniqueShopSlug = shopSlug + "-" + Math.random().toString(36).substring(2, 6);
 
-              if (staffData) {
-                referredByStaffId = staffData.id;
-                memberOfAdminId = staffData.created_by_admin_id;
-              } else {
-                const { data: adminData } = await supabase
-                  .from("sla_admins")
-                  .select("id")
-                  .eq("account_id", referralCode.trim().toUpperCase())
-                  .maybeSingle();
-                if (adminData) {
-                  memberOfAdminId = adminData.id;
-                }
-              }
-            }
+            // Concurrently insert reseller profile and retail shop
+            const [profileResult, shopResult] = await Promise.all([
+              supabase.from("reseller_profiles").insert({
+                id: userId,
+                first_name: firstName,
+                last_name: lastName,
+                email: isPhone ? null : normalizedEmail,
+                shop_name: shopNameVal,
+                shop_slug: uniqueShopSlug,
+                referral_id: referralId,
+                referral_code: referralCode || null,
+                balance: 0,
+                total_earnings: 0,
+                verified: true,
+                reseller_id: newResellerId,
+                referred_by_staff_id: referredByStaffId,
+                member_of_admin_id: memberOfAdminId,
+                registration_date: new Date().toISOString(),
+              }),
+              supabase.from("retail_shops").insert({
+                id: userId,
+                reseller_id: newResellerId,
+                shop_name: shopNameVal,
+                shop_slug: uniqueShopSlug,
+                level: "VIP-0",
+                product_limit: 20,
+                star_rating: 2.0,
+                credit_score: 100,
+                created_at: new Date().toISOString(),
+              }),
+            ]);
 
-            const { error: profileError } = await supabase.from("reseller_profiles").insert({
-              id: userId,
-              first_name: firstName,
-              last_name: lastName,
-              email: isPhone ? null : normalizedEmail,
-              shop_name: shopNameVal,
-              shop_slug: shopSlug + "-" + Math.random().toString(36).substring(2, 6),
-              referral_id: referralId,
-              referral_code: referralCode || null,
-              balance: 0,
-              total_earnings: 0,
-              verified: true,
-              reseller_id: newResellerId,
-              referred_by_staff_id: referredByStaffId,
-              member_of_admin_id: memberOfAdminId,
-              registration_date: new Date().toISOString(),
-            });
-            if (profileError) throw profileError;
-
-            const { error: shopError } = await supabase.from("retail_shops").insert({
-              id: userId,
-              reseller_id: newResellerId,
-              shop_name: shopNameVal,
-              shop_slug: shopSlug + "-" + Math.random().toString(36).substring(2, 6),
-              level: "VIP-0",
-              product_limit: 20,
-              star_rating: 2.0,
-              credit_score: 100,
-              created_at: new Date().toISOString(),
-            });
-            if (shopError) throw shopError;
+            if (profileResult.error) throw profileResult.error;
+            if (shopResult.error) throw shopResult.error;
 
             return Response.json({ success: true, userId });
           } catch (dbError) {

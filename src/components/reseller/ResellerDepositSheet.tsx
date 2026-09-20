@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Copy, Wallet, CreditCard, Headphones, AlertTriangle, Upload, ImageIcon, Zap, ShieldCheck } from "lucide-react";
+import { Copy, Wallet, Headphones, AlertTriangle, Upload, ImageIcon, Zap, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,6 @@ import { parseSettingValue, type DepositConfig } from "@/lib/system-settings";
 import { useReseller } from "@/lib/reseller-context-hooks";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import OnramperWidget from "@/components/payment/OnramperWidget";
 import {
   Sheet,
   SheetContent,
@@ -44,11 +43,11 @@ interface ResellerDepositSheetProps {
   onOpenChange: (open: boolean) => void;
   /** Optional amount used to pre-fill the deposit field when the sheet opens. */
   initialAmount?: string;
-  /** Initial tab to open ("card" | "crypto" | "local") */
-  defaultTab?: "card" | "crypto" | "local";
+  /** Initial tab to open ("crypto" | "local") */
+  defaultTab?: "crypto" | "local";
 }
 
-export default function ResellerDepositSheet({ open, onOpenChange, initialAmount, defaultTab = "card" }: ResellerDepositSheetProps) {
+export default function ResellerDepositSheet({ open, onOpenChange, initialAmount, defaultTab = "crypto" }: ResellerDepositSheetProps) {
   const { reseller } = useReseller();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -175,16 +174,12 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
           <SheetHeader className="pb-3 text-left">
             <SheetTitle className="text-base font-bold text-foreground">{t("reseller.depositFunds")}</SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground">
-              Select your preferred deposit channel: Instant Credit/Debit Card via Onramper or direct Crypto transfer.
+              {t("reseller.submitDepositRequest")}
             </SheetDescription>
           </SheetHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 w-full mb-4 bg-muted/80 p-1 rounded-xl">
-              <TabsTrigger value="card" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <CreditCard className="h-3.5 w-3.5 text-primary" />
-                <span>Card (Instant)</span>
-              </TabsTrigger>
+            <TabsList className="grid grid-cols-2 w-full mb-4 bg-muted/80 p-1 rounded-xl">
               <TabsTrigger value="crypto" className="rounded-lg text-xs gap-1.5 py-1.5 font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Wallet className="h-3.5 w-3.5 text-amber-500" />
                 <span>Crypto USDT</span>
@@ -195,20 +190,7 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB 1: Direct Card / Apple Pay / Google Pay via Onramper */}
-            <TabsContent value="card" className="mt-0 focus-visible:outline-none">
-              <OnramperWidget
-                resellerDocId={reseller?.id}
-                walletAddress={depositAddress}
-                initialAmount={depositAmount ? parseFloat(depositAmount) : 100}
-                defaultCrypto="usdt_tron"
-                onDepositSubmitted={() => {
-                  onOpenChange(false);
-                }}
-              />
-            </TabsContent>
-
-            {/* TAB 2: Crypto Direct Address & Proof */}
+            {/* TAB 1: Crypto Direct Address & Proof */}
             <TabsContent value="crypto" className="mt-0 space-y-4 focus-visible:outline-none">
               <div className="rounded-xl border border-border bg-card p-5 space-y-4">
                 <div className="flex items-center gap-3">
@@ -285,17 +267,6 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
                     {submitting ? t("common.submitting") : t("reseller.submitDeposit")}
                   </Button>
 
-                  <div className="text-center pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("card")}
-                      className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-1"
-                    >
-                      <CreditCard className="h-3 w-3" />
-                      Want to pay directly with Credit/Debit card instead? Click here
-                    </button>
-                  </div>
-
                   <div className="rounded-lg bg-muted/50 border border-border p-4 text-center mt-3">
                     <p className="text-xs font-medium text-muted-foreground mb-3">
                       {t("reseller.empoweredByBlockchain")}
@@ -316,12 +287,12 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
               </div>
             </TabsContent>
 
-            {/* TAB 3: Local Wire / Bank Transfer */}
+            {/* TAB 2: Local Wire / Bank Transfer */}
             <TabsContent value="local" className="mt-0 focus-visible:outline-none">
               <div className="rounded-xl border border-border bg-card p-5 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-                    <CreditCard className="h-5 w-5 text-accent-foreground" />
+                    <Headphones className="h-5 w-5 text-accent-foreground" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">{t("reseller.payInLocal")}</h3>
@@ -387,20 +358,6 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
           <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <p className="text-xs text-destructive leading-relaxed" dangerouslySetInnerHTML={{ __html: t("reseller.makeSureSendOnlyUsdt") }} />
-          </div>
-
-          <div className="pt-2">
-            <Button
-              className="w-full text-xs gap-1.5"
-              variant="secondary"
-              onClick={() => {
-                setShowWalletModal(false);
-                setActiveTab("card");
-              }}
-            >
-              <CreditCard className="h-3.5 w-3.5" />
-              Or Pay Directly with Debit / Credit Card
-            </Button>
           </div>
         </DialogContent>
       </Dialog>

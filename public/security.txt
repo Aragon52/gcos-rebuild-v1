@@ -1,0 +1,11 @@
+# Security Policy for GlobalCart Online Shop (GCOS)
+# RFC 9116 Compliant Security Disclosure
+
+Contact: mailto:security@globalcart-onlineshop.com
+Contact: https://globalcart-onlineshop.com/contact
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en, es, fr, de, zh
+Canonical: https://globalcart-onlineshop.com/.well-known/security.txt
+Policy: https://globalcart-onlineshop.com/verification-compliance
+Acknowledgments: https://globalcart-onlineshop.com/about
+Hiring: https://globalcart-onlineshop.com/about

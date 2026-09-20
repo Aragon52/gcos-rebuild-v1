@@ -1,23 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "@/lib/router-compat";
 import { useReseller } from "@/lib/reseller-context-hooks";
 import SEO from "@/components/SEO";
-import { Headset, Mail, Lock, Eye, EyeOff, CheckCircle2, Sparkles, LogIn, ArrowRight } from "lucide-react";
+import { Headset, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { resellerPath } from "@/lib/subdomain";
 import LogoIcon from "@/components/brand/LogoIcon";
 import resellerBg from "@/assets/reseller_bg.png";
 import { useTranslation } from "react-i18next";
 import SupportChatDialog from "@/components/messaging/SupportChatDialog";
 import { toast } from "sonner";
-import AuthProgressBanner from "@/components/reseller/AuthProgressBanner";
-import { useGlobalLoading } from "@/lib/global-loading-store";
 
 export default function ResellerLogin() {
   const loginBgImg = resellerBg;
   const { login } = useReseller();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { isLoading: isGlobalLoading, runWithTransitions } = useGlobalLoading();
   const [searchParams] = useSearchParams();
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -27,13 +24,7 @@ export default function ResellerLogin() {
   const [showSupport, setShowSupport] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  const loading = submitting || isGlobalLoading;
   const referralCode = searchParams.get('ref') || '';
-
-  // Real-time completeness check
-  const isFormValid = useMemo(() => {
-    return emailOrPhone.trim().length >= 3 && password.length >= 6;
-  }, [emailOrPhone, password]);
 
   const handleForgotPassword = async () => {
     if (!emailOrPhone || emailOrPhone.includes('+') || !emailOrPhone.includes('@')) {
@@ -76,9 +67,7 @@ export default function ResellerLogin() {
     const normalizedEmail = emailOrPhone.toLowerCase().trim();
 
     try {
-      const success = await runWithTransitions("login", async () => {
-        return await login(normalizedEmail, password);
-      }, { minDurationMs: 2000 });
+      const success = await login(normalizedEmail, password);
 
       if (success) {
         navigate(resellerPath("/reseller/dashboard"));
@@ -120,22 +109,6 @@ export default function ResellerLogin() {
           <p className="text-sm text-white/70">{t("reseller.signInToPortal", { defaultValue: "Sign in to your merchant portal" })}</p>
         </div>
 
-        {/* Animated Progress Banner During Login */}
-        {loading && (
-          <AuthProgressBanner
-            isLoading={loading}
-            variant="login"
-          />
-        )}
-
-        {/* Real-time readiness status badge before submission */}
-        {!loading && isFormValid && (
-          <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 p-2 text-xs font-semibold text-emerald-300 animate-pulse shadow-sm">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <span>Ready! Click Sign In to connect to your dashboard.</span>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <p className="text-xs text-red-300 text-center bg-red-500/20 border border-red-500/30 p-2.5 rounded-lg">
@@ -148,14 +121,13 @@ export default function ResellerLogin() {
             <div className="flex items-center gap-2 border border-white/20 rounded-lg px-3 py-2.5 bg-white/10 focus-within:ring-2 focus-within:ring-white/30 transition-all">
               <Mail className="h-4 w-4 text-white/40 shrink-0" />
               <input 
-                disabled={loading}
+                disabled={submitting}
                 type="text" 
                 value={emailOrPhone} 
                 onChange={e => setEmailOrPhone(e.target.value)} 
                 className="bg-transparent border-none outline-none text-sm w-full text-white placeholder:text-white/40" 
                 placeholder="you@example.com or +1234567890" 
               />
-              {emailOrPhone.trim().length >= 3 && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
             </div>
           </div>
 
@@ -164,7 +136,7 @@ export default function ResellerLogin() {
             <div className="flex items-center gap-2 border border-white/20 rounded-lg px-3 py-2.5 bg-white/10 focus-within:ring-2 focus-within:ring-white/30 transition-all">
               <Lock className="h-4 w-4 text-white/40 shrink-0" />
               <input 
-                disabled={loading}
+                disabled={submitting}
                 type={showPassword ? "text" : "password"} 
                 value={password} 
                 onChange={e => setPassword(e.target.value)} 
@@ -177,30 +149,13 @@ export default function ResellerLogin() {
             </div>
           </div>
 
-          {/* Lit-up Dynamic Sign In Button */}
           <button 
             type="submit" 
-            disabled={loading} 
-            className={`w-full relative flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all shadow-lg overflow-hidden ${
-              isFormValid && !loading
-                ? "bg-gradient-to-r from-primary via-emerald-400 to-primary text-primary-foreground shadow-[0_0_20px_rgba(34,197,94,0.4)] ring-2 ring-primary/60 scale-[1.01] hover:brightness-110 active:scale-[0.99]"
-                : "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            }`}
+            disabled={submitting} 
+            className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-md"
           >
-            {isFormValid && !loading && (
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-            )}
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 animate-spin text-white" />
-                Connecting & Synchronizing...
-              </span>
-            ) : isFormValid ? (
-              <span className="flex items-center gap-2">
-                <LogIn className="h-4 w-4" />
-                <span>Sign In to Dashboard</span>
-                <ArrowRight className="h-4 w-4 animate-pulse" />
-              </span>
+            {submitting ? (
+              <span>{t("common.submitting", { defaultValue: "Signing in..." })}</span>
             ) : (
               <span>{t("auth.signIn", { defaultValue: "Sign In" })}</span>
             )}
