@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useDbProducts } from "@/hooks/use-db-products";
 import type { Product } from "@/lib/types";
 import { ResellerContext, type ResellerProfile, type StoreTheme, getLevelByDeposit } from "@/lib/reseller-context-hooks";
+import { isNewResellerPromotionRuleActive } from "./vip-utils";
 import { supabase } from "./supabase";
 import { useFcmToken } from "@/hooks/use-fcm-token";
 import { resellerPath } from "@/lib/subdomain";
@@ -471,6 +472,14 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         const registrationDate = profileData.registration_date || profileData.created_at || userData.created_at || (currentShopData as any)?.created_at;
         const currentLevelLabel = (currentShopData?.level as string) || (profileData?.level as string) || "VIP-0";
         const levelInfo = getLevelByDeposit(netDeposits, currentLevelLabel, registrationDate);
+
+        // Auto-heal dirty database entries ONLY for NEWLY registered resellers (registered on/after effective date)
+        // Existing resellers registered before the cutoff date keep their existing VIP 1 level intact
+        const isNewReseller = isNewResellerPromotionRuleActive(registrationDate);
+        if (isNewReseller && netDeposits < 1000 && ((profileData.level === 'VIP 1' || profileData.level === 'VIP-1' || profileData.level === '1') || (currentShopData?.level === 'VIP 1' || currentShopData?.level === 'VIP-1' || currentShopData?.level === '1'))) {
+          supabase.from('reseller_profiles').update({ level: 'VIP-0', product_limit: 20 }).eq('id', userId).then(() => {}, () => {});
+          supabase.from('retail_shops').update({ level: 'VIP-0', product_limit: 20 }).eq('id', userId).then(() => {}, () => {});
+        }
 
         // Product selection
         const selectionData = selectionRes.data;

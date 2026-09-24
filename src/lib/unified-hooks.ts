@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Reseller } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
+import { calculateVipLevel, getVipProductLimit } from "@/lib/vip-utils";
 
 const EMPTY_RESELLERS: Reseller[] = [];
 
@@ -168,6 +169,17 @@ export function useUnifiedResellers() {
           const maxTime = dates.length > 0 ? Math.max(...dates) : new Date(profileData.created_at || Date.now()).getTime();
           const lastActive = new Date(maxTime).toISOString();
 
+          const totalDeposits = Number(profileData.total_deposits || 0);
+          const totalWithdrawals = Number(profileData.total_withdrawals || 0);
+          const netDeposits = totalDeposits - totalWithdrawals;
+          const regDate = (profileData.registration_date as string) || (userData.created_at as string) || '';
+          
+          const rawLvlStr = (retailShopData.level as string) || (profileData.level as string) || 'VIP-0';
+          const explicitLvlNum = parseInt(String(rawLvlStr).match(/\d+/)?.[0] || '0', 10);
+          const resolvedLvlNum = calculateVipLevel(netDeposits, explicitLvlNum, regDate);
+          const resolvedLevel = `VIP-${resolvedLvlNum}`;
+          const resolvedProductLimit = (retailShopData.product_limit as number) || getVipProductLimit(resolvedLvlNum, regDate);
+
           return {
             id: profileData.id,
             firstName,
@@ -176,15 +188,15 @@ export function useUnifiedResellers() {
             shopName,
             shopSlug: (retailShopData.shop_slug as string) || '',
             email: (userData.email as string) || (profileData.email as string) || '',
-            registrationDate: (profileData.registration_date as string) || (userData.created_at as string) || '',
+            registrationDate: regDate,
             referredBy: (profileData.referred_by_staff_id as string) || '',
             staffName,
             adminMember: adminName,
             memberOfAdminId: inferredAdminId,
             hasRequestedPasswordReset: profileData.password_reset_requested === true,
             referralId,
-            level: `VIP-${String((profileData.level as string) || (retailShopData.level as string) || 'VIP-0').match(/\d+/)?.[0] || '0'}`,
-            productLimit: (retailShopData.product_limit as number) || 20,
+            level: resolvedLevel,
+            productLimit: resolvedProductLimit,
             isSuspended: (retailShopData.is_suspended as boolean) || false,
             starRating: (retailShopData.star_rating as number) || 2.0,
             creditScore: (retailShopData.credit_score as number) || 100,
@@ -194,8 +206,8 @@ export function useUnifiedResellers() {
             balance: Number(profileData.balance || 0),
             pendingBalance: Number(profileData.pending_balance || 0),
             unpickedBalance: Number(profileData.unpicked_balance || 0),
-            totalDeposits: Number(profileData.total_deposits || 0),
-            totalWithdrawals: Number(profileData.total_withdrawals || 0),
+            totalDeposits: totalDeposits,
+            totalWithdrawals: totalWithdrawals,
             totalEarnings: Number(profileData.total_earnings || 0),
             totalOrders: Number(profileData.total_orders || 0),
             bankInfo: bankInfoVal as { bankName: string; accountName: string; accountNumber: string } | undefined,

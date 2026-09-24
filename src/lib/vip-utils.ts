@@ -37,14 +37,14 @@ export const VIP_LEVELS: VipTierConfig[] = [
  * Checks if a reseller was registered on or after the new VIP rule effective date/time.
  */
 export function isNewResellerPromotionRuleActive(registrationDate?: string | Date | null): boolean {
-  if (!registrationDate) return true;
+  if (!registrationDate) return false;
   try {
     const regTime = new Date(registrationDate).getTime();
     const cutoffTime = new Date(VIP_RULES_EFFECTIVE_TIMESTAMP).getTime();
-    if (isNaN(regTime)) return true;
+    if (isNaN(regTime)) return false;
     return regTime >= cutoffTime;
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -52,19 +52,19 @@ export function isNewResellerPromotionRuleActive(registrationDate?: string | Dat
  * Retrieves the applicable VIP tiers based on registration time and date.
  */
 export function getVipTiers(registrationDate?: string | Date | null): VipTierConfig[] {
-  // Can expand if legacy rules differ; currently the canonical tiers are VIP_LEVELS
   return VIP_LEVELS;
 }
 
 /**
  * Calculates the VIP level based on net deposit amount (total deposits - total withdrawals)
- * and checks registration time/date to apply the promotion rule without demoting current level.
+ * and checks registration time/date to apply the promotion rule without demoting existing resellers.
  */
 export const calculateVipLevel = (
   netDeposits: number, 
   currentLevel: number = 0, 
   registrationDate?: string | Date | null
 ): number => {
+  const isNew = isNewResellerPromotionRuleActive(registrationDate);
   const tiers = getVipTiers(registrationDate);
   
   // Sort descending to find the highest deposit tier achieved
@@ -74,8 +74,14 @@ export const calculateVipLevel = (
     
   const newCalculatedLevel = metTier ? metTier.level : 0;
   
+  // Only sanitize for NEWLY registered resellers after the effective cutoff date.
+  // Existing resellers registered before the cutoff keep their VIP 1 status intact.
+  const effectiveCurrentLevel = (isNew && currentLevel === 1 && netDeposits < 1000) 
+    ? 0 
+    : currentLevel;
+  
   // Return higher of the two to prevent demotion
-  return Math.max(currentLevel, newCalculatedLevel);
+  return Math.max(effectiveCurrentLevel, newCalculatedLevel);
 };
 
 /**
