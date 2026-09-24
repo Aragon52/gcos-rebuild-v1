@@ -15,14 +15,28 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Shop online | GCOS global marketplace" },
-      { name: "description", content: "Explore products, categories, deals, and independent reseller stores on GCOS, a global online marketplace." },
-      { name: "robots", content: "index, follow" },
-      { property: "og:title", content: "Shop online | GCOS global marketplace" },
-      { property: "og:description", content: "Explore products, categories, deals, and independent reseller stores on GCOS, a global online marketplace." },
+      { title: "GCOS — Global Commerce Online Store & Marketplace" },
+      {
+        name: "description",
+        content:
+          "Shop premium products across Electronics, Fashion, Home, Beauty, and Sports on GCOS. Discover verified reseller stores with secure worldwide checkout.",
+      },
+      { name: "robots", content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" },
+      { name: "googlebot", content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" },
+      { property: "og:title", content: "GCOS — Global Commerce Online Store & Marketplace" },
+      {
+        property: "og:description",
+        content:
+          "Shop premium products across Electronics, Fashion, Home, Beauty, and Sports on GCOS. Discover verified reseller stores with secure worldwide checkout.",
+      },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://globalcart-onlineshop.com/" },
+      { property: "og:image", content: "https://globalcart-onlineshop.com/brand/og-customer.png" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://globalcart-onlineshop.com/brand/og-customer.png" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://globalcart-onlineshop.com/" },
     ],
   }),
   component: HomeRoutePage,

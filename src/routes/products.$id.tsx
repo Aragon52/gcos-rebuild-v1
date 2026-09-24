@@ -5,12 +5,17 @@ import ProductDetail from "@/pages/ProductDetail";
 export const Route = createFileRoute("/products/$id")({
   head: () => ({
     meta: [
-      { title: "Product details | GCOS marketplace" },
-      { name: "description", content: "View product details, availability, and purchase information on the GCOS marketplace." },
-      { name: "robots", content: "index, follow" },
-      { property: "og:title", content: "Product — GCOS" },
-      { property: "og:description", content: "Product details on GCOS." },
-      { property: "og:type", content: "website" },
+      { title: "Product Details & Customer Reviews | GCOS Marketplace" },
+      {
+        name: "description",
+        content:
+          "View authentic product details, verified customer reviews, specifications, and fast worldwide delivery on the GCOS marketplace.",
+      },
+      { name: "robots", content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" },
+      { name: "googlebot", content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" },
+      { property: "og:title", content: "Product Details | GCOS Marketplace" },
+      { property: "og:description", content: "View product specifications and customer reviews on GCOS." },
+      { property: "og:type", content: "product" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),

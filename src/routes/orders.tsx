@@ -5,12 +5,9 @@ import Orders from "@/pages/Orders";
 export const Route = createFileRoute("/orders")({
   head: () => ({
     meta: [
-      { title: "My orders — GCOS" },
-      { name: "description", content: "Track your GCOS orders." },
-      { property: "og:title", content: "My orders — GCOS" },
-      { property: "og:description", content: "Track your GCOS orders." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "User Portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: OrdersRoutePage,

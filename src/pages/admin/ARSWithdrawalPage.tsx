@@ -93,8 +93,13 @@ export default function ARSWithdrawalPage() {
 
   /* ─── Actions ─── */
   const handleApprove = async (req: WithdrawalRequest) => {
+    if (processingId) return;
     if (!req.resellerDocId) {
       toast({ title: "Error", description: "Missing reseller document ID.", variant: "destructive" });
+      return;
+    }
+    if (req.status !== "Pending") {
+      toast({ title: "Already Processed", description: "This withdrawal request is no longer pending." });
       return;
     }
     setProcessingId(req.id);
@@ -105,9 +110,16 @@ export default function ARSWithdrawalPage() {
         status: "Approved"
       });
 
-      // 2. Increment the total withdrawals (Balance was already deducted on submission)
-      const currentReseller = resellers.find(r => r.id === req.resellerDocId);
-      const currentTotalWithdrawals = currentReseller?.totalWithdrawals || 0;
+      // 2. Increment total withdrawals from fresh DB record
+      const { data: currentReseller, error: fetchErr } = await supabase
+        .from('reseller_profiles')
+        .select('total_withdrawals')
+        .eq('id', req.resellerDocId)
+        .single();
+
+      if (fetchErr) throw fetchErr;
+
+      const currentTotalWithdrawals = currentReseller?.total_withdrawals || 0;
       
       const { error } = await supabase.from('reseller_profiles').update({
         total_withdrawals: currentTotalWithdrawals + req.amount,
@@ -126,7 +138,12 @@ export default function ARSWithdrawalPage() {
   };
 
   const handleReject = async () => {
-    if (!rejectRequest) return;
+    if (!rejectRequest || processingId) return;
+    if (!rejectRequest.resellerDocId) return;
+    if (rejectRequest.status !== "Pending") {
+      toast({ title: "Already Processed", description: "This withdrawal request is no longer pending." });
+      return;
+    }
     setProcessingId(rejectRequest.id);
     try {
       // 1. Update the request status
@@ -136,8 +153,15 @@ export default function ARSWithdrawalPage() {
         remark: rejectRemark 
       });
 
-      // 2. Refund the balance to the reseller
-      const currentReseller = resellers.find(r => r.id === rejectRequest.resellerDocId);
+      // 2. Fetch fresh reseller profile to refund balance accurately
+      const { data: currentReseller, error: fetchErr } = await supabase
+        .from('reseller_profiles')
+        .select('balance')
+        .eq('id', rejectRequest.resellerDocId)
+        .single();
+
+      if (fetchErr) throw fetchErr;
+
       const currentBalance = currentReseller?.balance || 0;
 
       const { error } = await supabase.from('reseller_profiles').update({
@@ -374,10 +398,19 @@ export default function ARSWithdrawalPage() {
               
               {viewRequest.status === "Pending" && (
                 <div className="flex gap-2">
-                  <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => { handleApprove(viewRequest); setViewRequest(null); }}>
+                  <Button 
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700" 
+                    disabled={!!processingId}
+                    onClick={() => { handleApprove(viewRequest); setViewRequest(null); }}
+                  >
                     Accept Withdrawal
                   </Button>
-                  <Button variant="destructive" className="flex-1" onClick={() => { setRejectRequest(viewRequest); setViewRequest(null); }}>
+                  <Button 
+                    variant="destructive" 
+                    className="flex-1" 
+                    disabled={!!processingId}
+                    onClick={() => { setRejectRequest(viewRequest); setViewRequest(null); }}
+                  >
                     Request Rejected
                   </Button>
                 </div>
@@ -406,8 +439,8 @@ export default function ARSWithdrawalPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectRequest(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!rejectRemark.trim()}>
+            <Button variant="outline" disabled={!!processingId} onClick={() => setRejectRequest(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={!rejectRemark.trim() || !!processingId}>
               Confirm Rejection
             </Button>
           </DialogFooter>

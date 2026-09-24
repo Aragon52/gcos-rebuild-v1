@@ -179,8 +179,13 @@ export default function ARSDepositPage() {
   /* ─── Actions ─── */
 
   const handleApprove = async (req: DepositRequest) => {
+    if (processingId) return;
     if (!req.resellerDocId) {
       toast({ title: "Error", description: "Missing reseller document ID.", variant: "destructive" });
+      return;
+    }
+    if (req.status !== "Pending") {
+      toast({ title: "Already Processed", description: "This deposit request is no longer pending." });
       return;
     }
     setProcessingId(req.id);
@@ -188,22 +193,32 @@ export default function ARSDepositPage() {
       // 1. Update the deposit request status in Supabase
       await updateDepositStatus.mutateAsync({ id: req.id, status: "Approved" });
       
-      // 2. Update the reseller's profile in Supabase
-      const currentReseller = resellers.find(r => r.id === req.resellerDocId);
-      const newTotalDeposits = (currentReseller?.totalDeposits || 0) + req.amount;
-      const newBalance = (currentReseller?.balance || 0) + req.amount;
+      // 2. Fetch fresh reseller profile from Supabase to prevent stale balance overwrites
+      const { data: currentReseller, error: fetchErr } = await supabase
+        .from('reseller_profiles')
+        .select('balance, total_deposits, total_withdrawals, level, registration_date, created_at')
+        .eq('id', req.resellerDocId)
+        .single();
 
-      // Calculate and update VIP level and product limit
+      if (fetchErr || !currentReseller) {
+        throw new Error("Could not fetch current reseller balance.");
+      }
+
+      const newTotalDeposits = (currentReseller.total_deposits || 0) + req.amount;
+      const newBalance = (currentReseller.balance || 0) + req.amount;
+
+      // Calculate and update VIP level and product limit with registration date check
       const { calculateVipLevel, getVipLabel, getVipProductLimit } = await import("@/lib/vip-utils");
       
-      const totalWithdrawals = currentReseller?.totalWithdrawals || 0;
+      const regDate = currentReseller.registration_date || (currentReseller as any).created_at;
+      const totalWithdrawals = currentReseller.total_withdrawals || 0;
       const netDeposits = newTotalDeposits - totalWithdrawals;
-      const currentLevel = typeof currentReseller?.level === 'string' 
+      const currentLevel = typeof currentReseller.level === 'string' 
         ? Number(currentReseller.level.replace('VIP-', '')) 
-        : Number(currentReseller?.level || 0);
+        : Number(currentReseller.level || 0);
 
-      const newLevel = calculateVipLevel(netDeposits, currentLevel);
-      const newLimit = getVipProductLimit(newLevel);
+      const newLevel = calculateVipLevel(netDeposits, currentLevel, regDate);
+      const newLimit = getVipProductLimit(newLevel, regDate);
       const levelLabel = getVipLabel(newLevel);
 
       await supabase.from('reseller_profiles').update({
@@ -245,7 +260,11 @@ export default function ARSDepositPage() {
   };
 
   const handleReject = async () => {
-    if (!rejectRequest) return;
+    if (!rejectRequest || processingId) return;
+    if (rejectRequest.status !== "Pending") {
+      toast({ title: "Already Processed", description: "This deposit request is no longer pending." });
+      return;
+    }
     setProcessingId(rejectRequest.id);
     try {
       await updateDepositStatus.mutateAsync({ 
@@ -531,10 +550,19 @@ export default function ARSDepositPage() {
                 
                 {viewRequest.status === "Pending" && (
                   <div className="flex gap-2">
-                    <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => { handleApprove(viewRequest); setViewRequest(null); }}>
+                    <Button 
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700" 
+                      disabled={!!processingId}
+                      onClick={() => { handleApprove(viewRequest); setViewRequest(null); }}
+                    >
                       Accept Deposit
                     </Button>
-                    <Button variant="destructive" className="flex-1" onClick={() => { setRejectRequest(viewRequest); setViewRequest(null); }}>
+                    <Button 
+                      variant="destructive" 
+                      className="flex-1" 
+                      disabled={!!processingId}
+                      onClick={() => { setRejectRequest(viewRequest); setViewRequest(null); }}
+                    >
                       Request Rejected
                     </Button>
                   </div>
@@ -586,8 +614,8 @@ export default function ARSDepositPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectRequest(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!rejectRemark.trim()}>
+            <Button variant="outline" disabled={!!processingId} onClick={() => setRejectRequest(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={!rejectRemark.trim() || !!processingId}>
               Confirm Rejection
             </Button>
           </DialogFooter>

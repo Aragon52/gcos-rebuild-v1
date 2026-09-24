@@ -159,6 +159,25 @@ export function useUpdateOrderStatus() {
   
   return useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: Order["status"] }) => {
+      // 1. First attempt to update via admin API endpoint (runs server-side with service-role permissions)
+      try {
+        const response = await fetch("/api/admin/update-order-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, status }),
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.success) {
+            return;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("[USE_ORDERS] API endpoint update failed, falling back to direct Supabase:", apiErr);
+      }
+
+      // 2. Direct fallback
       const { data: orderData, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
       if (orderError || !orderData) throw new Error("Order not found");
       
@@ -178,10 +197,6 @@ export function useUpdateOrderStatus() {
 
       const { error: updateError } = await supabase.from("orders").update(updateData).eq("id", orderId);
       if (updateError) throw updateError;
-
-      // Atomic balance updates in Supabase/Postgres are best done via RPC
-      // For now, I'll use simple select-then-update logic which is NOT atomic
-      // but without RPC setup, it's the most direct translation.
       
       const resellerId = orderData.reseller_id || orderData.resellerId;
       const totalAmount = Number(orderData.total_amount || orderData.total_cost || 0);

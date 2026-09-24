@@ -1,22 +1,68 @@
 import React from "react";
+import SEO from "@/components/SEO";
+import { ShieldCheck, Lock, CheckCircle2, Briefcase, Building2, UserCheck } from "lucide-react";
 
 export default function VerificationCompliance() {
   return (
-    <article className="container mx-auto max-w-4xl px-4 py-12 md:py-16">
-      <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary">Trust and safety</p>
-      <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground md:text-4xl">Verification &amp; Compliance</h1>
-      <p className="mb-10 text-sm text-muted-foreground">How GCOS helps keep the marketplace safe and reliable.</p>
-      <div className="prose prose-slate max-w-none">
-        <h2>Seller verification</h2>
-        <p>GCOS may review seller identity, business details, contact information, payout details, and supporting documents before enabling marketplace activity. Verification status can be reviewed periodically or when account information changes.</p>
-        <h2>Order and payment checks</h2>
-        <p>We use order, payment, delivery, and account information to help prevent fraud, resolve disputes, and meet legal and operational requirements. Additional information may be requested when an order, payment, withdrawal, or account activity requires review.</p>
-        <h2>Information handling</h2>
-        <p>Verification information is used for trust, safety, compliance, customer support, and marketplace operations. Access is limited to personnel and service providers who need it for these purposes and handled in line with our <a href="/privacy">Privacy Policy</a>.</p>
-        <h2>Customer responsibilities</h2>
-        <p>Keep your account information accurate, use payment methods you are authorized to use, and respond promptly to reasonable verification requests. Never share passwords, one-time codes, or payment credentials with another person.</p>
-        <h2>Questions and requests</h2>
-        <p>If you need help with verification or believe your account has been reviewed incorrectly, contact support@globalcart-onlineshop.com. Include your account email and relevant order or case reference, but do not send passwords or full payment card numbers.</p>
+    <article className="container mx-auto max-w-4xl px-4 py-12 md:py-16 space-y-6">
+      <SEO
+        title="Verification & Compliance - Demo Project Standards - GlobalCart"
+        description="Learn about merchant verification, KYC compliance, trust architecture, and the demonstration pilot framework at GlobalCart."
+        canonical="https://globalcart-onlineshop.com/verification-compliance"
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Verification & Compliance", item: "/verification-compliance" },
+        ]}
+      />
+
+      <div className="border-b border-border pb-6 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Trust, Safety &amp; Operational Governance</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Verification &amp; Compliance</h1>
+        <p className="text-xs text-muted-foreground">Comprehensive overview of KYC vetting, SLA standards, and demo pilot disclosures.</p>
+      </div>
+
+      {/* Demo Project & Investor Showcase Notice */}
+      <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 space-y-3">
+        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
+          <Briefcase className="h-5 w-5 flex-shrink-0" />
+          <span>Demonstration Pilot &amp; Investor Presentation Notice</span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          This system is maintained as a <strong>demonstration project and technology pilot</strong> to introduce prospective business partners and investors to our complete, fully functioning headless e-commerce architecture and compliance line-ups.
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <strong>Simulated Verification Workflows:</strong> Merchant verification, KYC reviews, and automated compliance tracking demonstrate our operational safeguards and do not execute binding financial contracts or real monetary transactions during this evaluation period.
+        </p>
+      </div>
+
+      <div className="prose prose-slate dark:prose-invert max-w-none space-y-6 text-sm text-foreground/90 leading-relaxed">
+        <section className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground">1. Multi-Tier Seller Verification (KYC / KYB)</h2>
+          <p className="text-muted-foreground">
+            The platform provides complete seller onboarding pipelines, validating business registrations, tax documentation, and merchant identification before granting active selling credentials.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground">2. Automated Order &amp; Fraud Monitoring</h2>
+          <p className="text-muted-foreground text-xs">
+            Every transaction is monitored by automated risk scoring engines to detect anomalies, irregular purchasing patterns, or unauthorized payment attempts, demonstrating robust enterprise defense.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground">3. Service Level Agreement (SLA) Governance</h2>
+          <p className="text-muted-foreground text-xs">
+            Sellers are held to strict fulfillment SLAs, ensuring prompt dispatch, accurate inventory tracking, and rapid customer support response times.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xl font-bold text-foreground">4. Contact &amp; Compliance Inquiries</h2>
+          <p className="text-muted-foreground text-xs">
+            For questions regarding our compliance architecture or investment opportunities, contact <span className="text-primary font-semibold">compliance@globalcart-onlineshop.com</span> or <span className="text-primary font-semibold">investors@globalcart-onlineshop.com</span>.
+          </p>
+        </section>
       </div>
     </article>
   );

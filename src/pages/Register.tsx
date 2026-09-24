@@ -22,6 +22,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [agreeTerms, setAgreeTerms] = useState(true);
+
   const referralCode = searchParams.get('ref');
 
   const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -37,6 +39,10 @@ export default function Register() {
     }
     if (password.length < 6) { setError(t("common.passwordMinLength")); return; }
     if (password !== confirmPassword) { setError(t("common.passwordsDoNotMatch")); return; }
+    if (!agreeTerms) {
+      setError(t("auth.mustAgreeTerms", { defaultValue: "Please agree to the Terms of Service & Privacy Policy to continue" }));
+      return;
+    }
 
     setLoading(true);
     const result = await register(name.trim(), emailOrPhone.trim(), password);
@@ -126,6 +132,26 @@ export default function Register() {
                   </button>
                 </div>
               </div>
+
+              {/* Agreement Checkbox (Checked by default) */}
+              <label className="flex items-start gap-2.5 cursor-pointer pt-1 text-xs text-muted-foreground select-none">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="leading-snug">
+                  {t("auth.agreeToTermsPrefix", { defaultValue: "I agree to the" })}{" "}
+                  <Link to="/terms" target="_blank" className="font-semibold text-primary hover:underline">
+                    {t("footer.termsOfService", { defaultValue: "Terms of Service" })}
+                  </Link>{" "}
+                  &amp;{" "}
+                  <Link to="/privacy" target="_blank" className="font-semibold text-primary hover:underline">
+                    {t("footer.privacyPolicy", { defaultValue: "Privacy Policy" })}
+                  </Link>
+                </span>
+              </label>
 
               <button
                 type="submit"

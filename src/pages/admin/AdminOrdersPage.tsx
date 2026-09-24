@@ -45,7 +45,7 @@ export default function AdminOrdersPage() {
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
 
   const handleCancelOrder = async () => {
-    if (orderToCancel) {
+    if (orderToCancel && !cancelOrderMutation.isPending) {
       await cancelOrderMutation.mutateAsync(orderToCancel);
       logActivity('DATA_UPDATE', 'Orders', { orderId: orderToCancel, action: 'Cancelled' });
       setOrderToCancel(null);
@@ -53,6 +53,7 @@ export default function AdminOrdersPage() {
   };
 
   const handleUpdateStatus = async (orderId: string, status: Order["status"]) => {
+    if (updateStatusMutation.isPending) return;
     await updateStatusMutation.mutateAsync({ orderId, status });
     logActivity('DATA_UPDATE', 'Orders', { orderId, action: 'Update Status', status });
   };

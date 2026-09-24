@@ -6,7 +6,6 @@ import { toExternalUrl, toInternalUrl } from "./lib/portal-host";
 export const getRouter = () => {
   const queryClient = new QueryClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const router = createRouter({
     routeTree,
     context: { queryClient },

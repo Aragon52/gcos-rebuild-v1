@@ -102,32 +102,32 @@ export default function ResellerWithdrawalSheet({ open, onOpenChange }: Reseller
   }, [reseller, open]);
 
   const handleSubmit = async () => {
-    if (!reseller) return;
+    if (!reseller || submitting) return;
     const num = parseFloat(amount);
     if (!num || num <= 0) {
       toast({ title: t("common.invalidAmount"), description: t("common.enterValidAmount"), variant: "destructive" });
       return;
     }
     
-    // Refresh reseller data to get latest balance
-    const { data: profile, error: profileError } = await supabase
-      .from('reseller_profiles')
-      .select('balance')
-      .eq('id', reseller.id)
-      .single();
-
-    if (profileError || !profile) {
-      toast({ title: t("common.error"), description: "Could not fetch reseller profile.", variant: "destructive" });
-      return;
-    }
-
-    if (num > (profile.balance || 0)) {
-      toast({ title: t("common.insufficientBalance"), description: t("common.withdrawalExceedsBalance"), variant: "destructive" });
-      return;
-    }
-
     setSubmitting(true);
     try {
+      // Refresh reseller data to get latest balance
+      const { data: profile, error: profileError } = await supabase
+        .from('reseller_profiles')
+        .select('balance')
+        .eq('id', reseller.id)
+        .single();
+
+      if (profileError || !profile) {
+        toast({ title: t("common.error"), description: "Could not fetch reseller profile.", variant: "destructive" });
+        return;
+      }
+
+      if (num > (profile.balance || 0)) {
+        toast({ title: t("common.insufficientBalance"), description: t("common.withdrawalExceedsBalance"), variant: "destructive" });
+        return;
+      }
+
       // 1. Deduct balance
       const { error: updateError } = await supabase
         .from('reseller_profiles')

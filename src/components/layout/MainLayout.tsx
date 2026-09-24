@@ -14,8 +14,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { pathname } = useLocation();
   const portal = detectPortal();
 
-  // Admin & reseller portals have their own layouts
-  const isPortal = portal !== 'customer' || pathname.startsWith('/admin') || pathname.startsWith('/reseller');
+  const isStorefront = pathname.startsWith('/store');
+  // Admin & reseller portals have their own layouts, but storefront is always public marketplace
+  const isPortal = !isStorefront && (portal !== 'customer' || pathname.startsWith('/admin') || pathname.startsWith('/reseller'));
 
   if (isPortal) {
     return <main className="min-h-screen">{children}</main>;

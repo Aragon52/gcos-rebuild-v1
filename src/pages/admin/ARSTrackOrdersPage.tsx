@@ -294,6 +294,26 @@ export default function ARSTrackOrdersPage() {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
 
     try {
+      // 1. Try server-side update with service-role permissions
+      try {
+        const response = await fetch("/api/admin/update-order-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: id, status }),
+        });
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.success) {
+            toast({ title: `Order marked as ${(status || "").toLowerCase()}` });
+            fetchOrders();
+            return;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("[ARS_TRACK_ORDERS] API update failed, falling back to direct Supabase:", apiErr);
+      }
+
+      // 2. Direct fallback
       const { data: orderData, error: fetchError } = await supabase.from("orders").select("*").eq("id", id).single();
       if (fetchError || !orderData) {
         toast({ title: "Order not found", variant: "destructive" });
@@ -305,7 +325,7 @@ export default function ARSTrackOrdersPage() {
       const newStatus = status;
       const resellerId = orderData.reseller_id || orderData.resellerId;
       const totalCost = Number(orderData.total_cost || orderData.total_amount || 0);
-      const profit = Number(orderData.profits || 0);
+      const profit = Number(orderData.profits || orderData.profit || 0);
       const serviceCost = Number(orderData.service_cost || 0);
 
       if (resellerId) {

@@ -10,17 +10,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
+import { getVipTiers } from "@/lib/vip-utils";
 import { TFunction } from "i18next";
-
-const LEVELS = [
-  { level: 0, maxProducts: 20, maxProfit: 15, recharge: 1000, next: 1 },
-  { level: 1, maxProducts: 30, maxProfit: 20, recharge: 5000, next: 2 },
-  { level: 2, maxProducts: 40, maxProfit: 25, recharge: 10000, next: 3 },
-  { level: 3, maxProducts: 50, maxProfit: 30, recharge: 50000, next: 4 },
-  { level: 4, maxProducts: 100, maxProfit: 35, recharge: 100000, next: 5 },
-  { level: 5, maxProducts: 150, maxProfit: 40, recharge: null, next: null },
-];
 
 const LEVEL_COLORS = [
   "border-l-muted-foreground",
@@ -47,8 +38,10 @@ function GlassCard({ children, className = "" }: { children: React.ReactNode; cl
   );
 }
 
-function AllLevelsSheet({ currentLevel, open, onOpenChange }: { currentLevel: number; open: boolean; onOpenChange: (v: boolean) => void }) {
+function AllLevelsSheet({ currentLevel, registrationDate, open, onOpenChange }: { currentLevel: number; registrationDate?: string; open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t } = useTranslation();
+  const tiers = getVipTiers(registrationDate);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl border-t border-border bg-background p-0">
@@ -57,12 +50,12 @@ function AllLevelsSheet({ currentLevel, open, onOpenChange }: { currentLevel: nu
         </SheetHeader>
         <ScrollArea className="h-[calc(85vh-70px)] px-5 pb-6">
           <div className="space-y-3 pb-6">
-            {LEVELS.map((l) => {
+            {tiers.map((l) => {
               const isCurrent = l.level === currentLevel;
               return (
                 <div
                   key={l.level}
-                  className={`rounded-xl border-l-4 ${LEVEL_COLORS[l.level]} border border-border p-4 space-y-2 ${
+                  className={`rounded-xl border-l-4 ${LEVEL_COLORS[l.level] || "border-l-primary"} border border-border p-4 space-y-2 ${
                     isCurrent ? "bg-primary/5 ring-1 ring-primary/30" : "bg-card/60 backdrop-blur-sm"
                   }`}
                 >
@@ -79,19 +72,21 @@ function AllLevelsSheet({ currentLevel, open, onOpenChange }: { currentLevel: nu
                   <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                     <div>
                       <span className="block text-[10px] uppercase tracking-wide">{t("reseller.maxProducts")}</span>
-                      <span className="text-sm font-semibold text-foreground">{l.maxProducts}</span>
+                      <span className="text-sm font-semibold text-foreground">{l.productLimit}</span>
                     </div>
                     <div>
                       <span className="block text-[10px] uppercase tracking-wide">{t("reseller.maxProfit")}</span>
-                      <span className="text-sm font-semibold text-foreground">{l.maxProfit}%</span>
+                      <span className="text-sm font-semibold text-foreground">{Math.round(l.marginProfit * 100)}%</span>
                     </div>
                   </div>
-                  {l.recharge !== null && (
+                  {l.rechargeToNext !== null && (
                     <p className="text-[11px] text-muted-foreground">
-                      {t("reseller.accumulatedRecharge")} <span className="font-semibold text-secondary">${l.recharge.toLocaleString()}</span> {t("reseller.promoteToLevel")} {l.next}
+                      {t("reseller.accumulatedRecharge")}{" "}
+                      <span className="font-semibold text-secondary">${l.rechargeToNext.toLocaleString()}</span>{" "}
+                      {t("reseller.promoteToLevel")} {l.nextLevel}
                     </p>
                   )}
-                  {l.recharge === null && (
+                  {l.rechargeToNext === null && (
                     <p className="text-[11px] font-medium text-primary">{t("reseller.topTierMaximumLevel")}</p>
                   )}
                 </div>
@@ -186,7 +181,7 @@ export default function ShopReputationSheet() {
         </SheetContent>
       </Sheet>
 
-      <AllLevelsSheet currentLevel={shopLevel} open={levelsOpen} onOpenChange={setLevelsOpen} />
+      <AllLevelsSheet currentLevel={shopLevel} registrationDate={reseller.joinedAt} open={levelsOpen} onOpenChange={setLevelsOpen} />
     </>
   );
 }

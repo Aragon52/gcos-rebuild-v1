@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useReseller } from "@/lib/reseller-context-hooks";
 import { useNavigate, useLocation } from "@/lib/router-compat";
 import { resellerPath } from "@/lib/subdomain";
-import { Package, ShoppingCart, CreditCard, Clock, CheckCircle, ArrowRight } from "lucide-react";
+import { Package, ShoppingCart, CreditCard, Clock, CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -22,6 +22,7 @@ export default function ResellerOrders() {
   const [activeTab, setActiveTab] = useState<FilterTab>((location.state as any)?.tab || "All");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pickingUpId, setPickingUpId] = useState<string | null>(null);
   const updateStatusMutation = useUpdateOrderStatus();
 
   const STATUS_CONFIG: Record<string, { label: string; color: string; icon: LucideIcon | typeof LoadingSpinner }> = {
@@ -107,7 +108,7 @@ export default function ResellerOrders() {
   const usableBalance = reseller ? reseller.balance - (reseller.guaranteeBalance ?? 0) : 0;
 
   const handlePickUp = async (order: Order) => {
-    if (!reseller) return;
+    if (!reseller || pickingUpId || order.status !== "Pending") return;
     
     if (usableBalance < order.serviceCost) {
       toast.error(t("reseller.insufficientBalanceOrder"), {
@@ -117,6 +118,7 @@ export default function ResellerOrders() {
       return;
     }
 
+    setPickingUpId(order.id);
     try {
       await updateStatusMutation.mutateAsync({ 
         orderId: order.id, 
@@ -129,6 +131,8 @@ export default function ResellerOrders() {
     } catch (error) {
       console.error("Error picking up order:", error);
       toast.error(t("reseller.failedToPickUpOrder"));
+    } finally {
+      setPickingUpId(null);
     }
   };
 
@@ -136,6 +140,14 @@ export default function ResellerOrders() {
     if (activeTab === "All") return orders;
     return orders.filter(o => o.status === activeTab);
   }, [orders, activeTab]);
+
+  const completedOrders = useMemo(() => {
+    return orders.filter(o => o.status === "Completed");
+  }, [orders]);
+
+  const totalCollectedProfit = useMemo(() => {
+    return completedOrders.reduce((sum, o) => sum + (o.profit || 0), 0);
+  }, [completedOrders]);
 
   if (!reseller) return null;
 
@@ -161,6 +173,29 @@ export default function ResellerOrders() {
           </button>
         ))}
       </div>
+
+      {/* Completed Orders Summary Banner */}
+      {activeTab === "Completed" && (
+        <div className="rounded-2xl border border-success/30 bg-success/[0.08] p-4 flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-[10px] font-bold text-success uppercase tracking-wider">
+              {t("reseller.totalCollectedProfit", { defaultValue: "Total Collected Profit" })}
+            </p>
+            <p className="text-2xl font-black text-foreground mt-0.5">
+              ${totalCollectedProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {t("reseller.completedOrdersSummary", {
+                count: completedOrders.length,
+                defaultValue: `${completedOrders.length} completed ${completedOrders.length === 1 ? "order" : "orders"} delivered`,
+              })}
+            </p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-success/20 border border-success/30 flex items-center justify-center text-success">
+            <CheckCircle className="h-6 w-6" />
+          </div>
+        </div>
+      )}
 
       {/* Order cards */}
       <div className="space-y-4">
@@ -245,13 +280,32 @@ export default function ResellerOrders() {
                   </div>
                 </div>
 
+                {/* Profit collected confirmation badge for Completed orders */}
+                {order.status === "Completed" && (
+                  <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-success/[0.08] border border-success/20 text-success text-xs font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      {t("reseller.profitCollected", { defaultValue: "Profit Collected" })}
+                    </span>
+                    <span className="font-bold">+${order.profit.toFixed(2)}</span>
+                  </div>
+                )}
+
                 {/* Pick up button */}
                 {order.status === "Pending" && (
                   <button
                     onClick={() => handlePickUp(order)}
-                    className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm font-bold py-3 rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-[0.98]"
+                    disabled={pickingUpId === order.id || updateStatusMutation.isPending}
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm font-bold py-3 rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {t("reseller.pickUp")}
+                    {pickingUpId === order.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {t("common.processing", { defaultValue: "Processing..." })}
+                      </>
+                    ) : (
+                      t("reseller.pickUp")
+                    )}
                   </button>
                 )}
               </div>

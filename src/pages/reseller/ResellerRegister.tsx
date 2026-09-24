@@ -5,7 +5,7 @@ import SEO from "@/components/SEO";
 import { Headset, User, Mail, Lock, Eye, EyeOff, Tag } from "lucide-react";
 import { resellerPath } from "@/lib/subdomain";
 import LogoIcon from "@/components/brand/LogoIcon";
-import resellerBg from "@/assets/reseller_bg.png";
+import resellerBg from "@/assets/images/shopping_complex_mall_1790263022364.jpg";
 import { useTranslation } from "react-i18next";
 import SupportChatDialog from "@/components/messaging/SupportChatDialog";
 
@@ -22,6 +22,7 @@ export default function ResellerRegister() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [referralCode, setReferralCode] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showSupport, setShowSupport] = useState(false);
@@ -45,6 +46,10 @@ export default function ResellerRegister() {
     }
     if (form.password !== confirmPassword) {
       setError(t("reseller.passwordsDoNotMatch", { defaultValue: "Passwords do not match" }));
+      return;
+    }
+    if (!agreeTerms) {
+      setError(t("auth.mustAgreeTerms", { defaultValue: "Please agree to the Reseller Agreement, Terms of Service & Privacy Policy to continue" }));
       return;
     }
 
@@ -91,10 +96,18 @@ export default function ResellerRegister() {
           <Headset className="h-5 w-5" />
         </button>
         
-        <div className="text-center">
-          <LogoIcon size={48} className="mx-auto" />
-          <h1 className="text-xl font-bold text-white mt-3">GlobalCart Online Shop</h1>
-          <p className="text-sm text-white/70">{t("reseller.startResellingToday", { defaultValue: "Create your merchant shop in seconds" })}</p>
+        <div className="text-center space-y-1.5">
+          <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white/5 border border-white/10 shadow-inner backdrop-blur-sm">
+            <LogoIcon size={52} />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-1.5 font-poppins">
+            <span className="text-[#F1C40F]">Global</span>
+            <span className="text-[#2ECC71]">Cart</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-white/90 bg-white/15 px-2 py-0.5 rounded-full ml-1 border border-white/20">
+              Reseller
+            </span>
+          </h1>
+          <p className="text-xs text-white/70">{t("reseller.startResellingToday", { defaultValue: "Create your merchant shop in seconds" })}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -202,6 +215,30 @@ export default function ResellerRegister() {
             )}
           </div>
 
+          {/* Agreement Checkbox (Checked by default) */}
+          <label className="flex items-start gap-2.5 cursor-pointer pt-1 text-xs text-white/80 select-none">
+            <input
+              type="checkbox"
+              checked={agreeTerms}
+              onChange={(e) => setAgreeTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-white/30 bg-white/10 text-primary accent-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+            />
+            <span className="leading-snug text-[11px]">
+              {t("auth.agreeToTermsPrefix", { defaultValue: "I agree to the" })}{" "}
+              <Link to="/terms" target="_blank" className="font-semibold text-[#2ECC71] hover:underline">
+                {t("footer.termsOfService", { defaultValue: "Terms of Service" })}
+              </Link>
+              {", "}
+              <Link to="/privacy" target="_blank" className="font-semibold text-[#2ECC71] hover:underline">
+                {t("footer.privacyPolicy", { defaultValue: "Privacy Policy" })}
+              </Link>
+              {" "}&amp;{" "}
+              <Link to="/verification-compliance" target="_blank" className="font-semibold text-[#2ECC71] hover:underline">
+                Reseller Terms
+              </Link>
+            </span>
+          </label>
+
           <button
             type="submit"
             disabled={submitting}
@@ -221,6 +258,11 @@ export default function ResellerRegister() {
             {t("auth.signIn", { defaultValue: "Sign In" })}
           </Link>
         </p>
+
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/50 pt-2 border-t border-white/10">
+          <LogoIcon size={14} />
+          <span>GlobalCart Instant Merchant Activation & Zero Upfront Cost</span>
+        </div>
       </div>
 
       <SupportChatDialog 

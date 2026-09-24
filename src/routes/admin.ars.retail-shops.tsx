@@ -5,12 +5,9 @@ import ARSRetailShopsPage from "@/pages/admin/ARSRetailShopsPage";
 export const Route = createFileRoute("/admin/ars/retail-shops")({
   head: () => ({
     meta: [
-      { title: "Retail shops — GCOS" },
-      { name: "description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:title", content: "Retail shops — GCOS" },
-      { property: "og:description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Admin portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: AdminArsRetailShopsRoutePage,

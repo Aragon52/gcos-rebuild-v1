@@ -5,7 +5,7 @@ import SEO from "@/components/SEO";
 import { Headset, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { resellerPath } from "@/lib/subdomain";
 import LogoIcon from "@/components/brand/LogoIcon";
-import resellerBg from "@/assets/reseller_bg.png";
+import resellerBg from "@/assets/images/shopping_complex_mall_1790263022364.jpg";
 import { useTranslation } from "react-i18next";
 import SupportChatDialog from "@/components/messaging/SupportChatDialog";
 import { toast } from "sonner";
@@ -27,8 +27,8 @@ export default function ResellerLogin() {
   const referralCode = searchParams.get('ref') || '';
 
   const handleForgotPassword = async () => {
-    if (!emailOrPhone || emailOrPhone.includes('+') || !emailOrPhone.includes('@')) {
-      setError(t("reseller.enterEmailForReset", { defaultValue: "Please enter a valid email to reset password" }));
+    if (!emailOrPhone.trim()) {
+      setError(t("reseller.enterEmailOrPhoneForReset", { defaultValue: "Please enter your email or phone number above to reset password" }));
       return;
     }
     setSubmitting(true);
@@ -37,11 +37,11 @@ export default function ResellerLogin() {
       const response = await fetch('/api/reseller/request-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailOrPhone }),
+        body: JSON.stringify({ emailOrPhone: emailOrPhone.trim() }),
       });
       if (response.ok) {
         setResetSent(true);
-        toast.success(t("reseller.resetRequestSent", { defaultValue: "Password reset instructions requested" }));
+        toast.success(t("reseller.resetRequestSent", { defaultValue: "Password reset request submitted. Support team notified." }));
         setShowSupport(true);
       } else {
         const data = await response.json();
@@ -103,10 +103,18 @@ export default function ResellerLogin() {
           <Headset className="h-5 w-5" />
         </button>
         
-        <div className="text-center">
-          <LogoIcon size={48} className="mx-auto" />
-          <h1 className="text-xl font-bold text-white mt-3">GlobalCart Online Shop</h1>
-          <p className="text-sm text-white/70">{t("reseller.signInToPortal", { defaultValue: "Sign in to your merchant portal" })}</p>
+        <div className="text-center space-y-1.5">
+          <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white/5 border border-white/10 shadow-inner backdrop-blur-sm">
+            <LogoIcon size={52} />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-1.5 font-poppins">
+            <span className="text-[#F1C40F]">Global</span>
+            <span className="text-[#2ECC71]">Cart</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-white/90 bg-white/15 px-2 py-0.5 rounded-full ml-1 border border-white/20">
+              Reseller
+            </span>
+          </h1>
+          <p className="text-xs text-white/70">{t("reseller.signInToPortal", { defaultValue: "Sign in to your merchant portal" })}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -182,6 +190,11 @@ export default function ResellerLogin() {
             {t("reseller.joinAsReseller", { defaultValue: "Join as a Reseller" })}
           </Link>
         </p>
+
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/50 pt-2 border-t border-white/10">
+          <LogoIcon size={14} />
+          <span>GlobalCart Merchant Protection & Instant Access</span>
+        </div>
       </div>
 
       <SupportChatDialog 

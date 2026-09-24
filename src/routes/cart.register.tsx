@@ -5,12 +5,9 @@ import Register from "@/pages/Register";
 export const Route = createFileRoute("/cart/register")({
   head: () => ({
     meta: [
-      { title: "Create account — GCOS" },
-      { name: "description", content: "Create your GCOS account." },
-      { property: "og:title", content: "Create account — GCOS" },
-      { property: "og:description", content: "Create your GCOS account." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "User Portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: CartRegisterRoutePage,

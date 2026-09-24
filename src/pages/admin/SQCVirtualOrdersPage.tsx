@@ -343,6 +343,7 @@ export default function SQCVirtualOrdersPage() {
 
   // Submit order
   const submitOrder = async () => {
+    if (submitting) return;
     if (!selectedProfile || !activeReseller || cart.length === 0) {
       toast.error("Please select a customer, add products, and select an active reseller.");
       return;
@@ -455,6 +456,7 @@ export default function SQCVirtualOrdersPage() {
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
+    if (updateStatusMutation.isPending) return;
     try {
       await updateStatusMutation.mutateAsync({ orderId, status: status as OrderStatus });
       setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: status as OrderStatus } : o));

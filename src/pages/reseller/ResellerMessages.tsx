@@ -64,7 +64,7 @@ function SupportChatPanel() {
     loadMore: loadMoreMessages, 
     hasMore: hasMoreMessages, 
     loadingMore: loadingMoreMessages 
-  } = usePaginatedMessages("reseller_chat_messages", sessionId, 5);
+  } = usePaginatedMessages("reseller_chat_messages", sessionId, 10);
 
   const [input, setInput] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -305,7 +305,7 @@ function CustomerChatPanel() {
     loadMore: loadMoreMessages, 
     hasMore: hasMoreMessages, 
     loadingMore: loadingMoreMessages 
-  } = usePaginatedMessages("reseller_chat_messages", activeSessionId, 5);
+  } = usePaginatedMessages("reseller_chat_messages", activeSessionId, 10);
 
   const [input, setInput] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -547,13 +547,15 @@ export default function ResellerMessages() {
   const { reseller } = useReseller();
   const { t } = useTranslation();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState((location.state as any)?.tab || "support");
+  const locationState = location.state as { tab?: string } | undefined;
+  const targetTab = locationState?.tab;
+  const [activeTab, setActiveTab] = useState(targetTab || "support");
 
   useEffect(() => {
-    if ((location.state as any)?.tab) {
-      setActiveTab((location.state as any).tab);
+    if (targetTab) {
+      setActiveTab(targetTab);
     }
-  }, [(location.state as any)?.tab]);
+  }, [targetTab]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-2rem)]">

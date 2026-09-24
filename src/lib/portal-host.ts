@@ -23,8 +23,8 @@ const HOST_PREFIX_RULES: Array<{ test: RegExp; prefix: PortalPrefix }> = [
   { test: /^(reseller|retailshops)\./i, prefix: "/reseller" },
 ];
 
-/** Paths that must never be rewritten (server functions, API routes, assets). */
-const RESERVED_PATH = /^\/(api|_serverFn|_server|_build|assets|@|__|\.netlify|favicon|robots\.txt|sitemap)/;
+/** Paths that must never be rewritten (server functions, API routes, assets, Vite internals, public files). */
+const RESERVED_PATH = /^\/(api|_serverFn|_server|_build|assets|src|node_modules|@|__|\.netlify|\.tanstack|favicon|robots\.txt|sitemap|manifest|brand|images|fonts|crypto|badges|placeholder|\.well-known|sw\.js|offline\.html|store|products|categories|cart|checkout)/;
 
 export function portalPrefixForHost(hostname?: string | null): PortalPrefix {
   // 0. Manual dev override via localStorage
@@ -62,9 +62,10 @@ function hasPrefix(pathname: string, prefix: string): boolean {
 
 /** Request/address-bar URL -> internal router URL. */
 export function toInternalUrl({ url }: { url: URL }): URL | undefined {
+  if (RESERVED_PATH.test(url.pathname)) return undefined;
+
   const prefix = portalPrefixForHost(url.hostname);
   if (!prefix) return undefined;
-  if (RESERVED_PATH.test(url.pathname)) return undefined;
   if (hasPrefix(url.pathname, prefix)) return undefined;
 
   const next = new URL(url);
@@ -74,6 +75,8 @@ export function toInternalUrl({ url }: { url: URL }): URL | undefined {
 
 /** Internal router URL -> address-bar URL. */
 export function toExternalUrl({ url }: { url: URL }): URL | undefined {
+  if (RESERVED_PATH.test(url.pathname)) return undefined;
+
   const prefix = portalPrefixForHost(url.hostname);
   if (!prefix) return undefined;
   if (!hasPrefix(url.pathname, prefix)) return undefined;

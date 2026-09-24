@@ -1,14 +1,16 @@
 import { useReseller } from "@/lib/reseller-context-hooks";
-import { Package, ShoppingBag, Headphones, ChevronRight, DollarSign, Award, TrendingUp, Eye, Clock, Share2 } from "lucide-react";
+import { 
+  Package, ShoppingBag, Headphones, ChevronRight, DollarSign, Award, 
+  TrendingUp, Eye, Clock, Share2, Sparkles, Rocket, Zap, ShieldCheck, ArrowRight 
+} from "lucide-react";
 import { Link, useLocation } from "@/lib/router-compat";
 import { resellerPath } from "@/lib/subdomain";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import useEmblaCarousel from "embla-carousel-react";
+import { Button } from "@/components/ui/button";
 import AdBoostSheet from "@/components/reseller/AdBoostSheet";
-import adBoostCardImg from "@/assets/ad-boost-card.png";
-
-const adBoostCard = adBoostCardImg;
+import { supabase } from "@/lib/supabase";
 
 const LEVEL_BADGE_MAP: Record<string, number> = {
   "VIP-0": 0,
@@ -26,7 +28,53 @@ export default function ResellerDashboard() {
   const sharedData = (location.state as any)?.sharedData;
   
   const [adBoostOpen, setAdBoostOpen] = useState(false);
+  const [selectedPlanName, setSelectedPlanName] = useState<string | null>(null);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "center" });
+  const [orderCounts, setOrderCounts] = useState<{ total: number; completed: number; pending: number }>({
+    total: 0,
+    completed: 0,
+    pending: 0,
+  });
+
+  const fetchOrderStats = useCallback(async () => {
+    if (!reseller?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, status")
+        .eq("reseller_id", reseller.id);
+
+      if (!error && data) {
+        const total = data.length;
+        const completed = data.filter(o => String(o.status || '').toLowerCase() === 'completed').length;
+        const pending = data.filter(o => String(o.status || '').toLowerCase() === 'pending').length;
+        setOrderCounts({ total, completed, pending });
+      }
+    } catch (err) {
+      console.error("[ResellerDashboard] Error fetching order stats:", err);
+    }
+  }, [reseller?.id]);
+
+  useEffect(() => {
+    fetchOrderStats();
+
+    if (!reseller?.id) return;
+    const channel = supabase
+      .channel(`dashboard_orders_stats:${reseller.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'orders', 
+        filter: `reseller_id=eq.${reseller.id}` 
+      }, () => {
+        fetchOrderStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [reseller?.id, fetchOrderStats]);
 
   const shortcuts = useMemo(() => [
     { icon: Package, label: t("reseller.pendingOrders"), href: resellerPath("/reseller/orders"), state: { tab: "Pending" }, color: "text-primary" },
@@ -40,12 +88,15 @@ export default function ResellerDashboard() {
     return () => clearInterval(interval);
   }, [emblaApi]);
 
+  const displayTotalOrders = orderCounts.total || reseller?.totalOrders || 0;
+  const displayCompletedOrders = orderCounts.completed || 0;
+
   // Generate a pseudo-random weekly visit count (adjustable from admin)
   const weeklyVisits = useMemo(() => {
-    const base = reseller ? (reseller.totalOrders * 3 + 120) : 200;
+    const base = reseller ? (displayTotalOrders * 3 + 120) : 200;
     const jitter = Math.floor(Math.random() * 80) - 40;
     return Math.max(50, base + jitter);
-  }, [reseller]);
+  }, [reseller, displayTotalOrders]);
 
   // Derive verification status
   const verificationStatus = useMemo(() => {
@@ -61,9 +112,24 @@ export default function ResellerDashboard() {
   if (!reseller) return null;
 
   const slidingCards = [
-    { label: t("reseller.totalOrders"), value: reseller.totalOrders.toString(), subtitle: t("reseller.completed"), icon: Package },
-    { label: t("reseller.totalDeposits"), value: `$${reseller.totalDeposits.toLocaleString()}`, subtitle: t("reseller.lifetime"), icon: DollarSign },
-    { label: t("reseller.shopLevel"), value: reseller.level, subtitle: t("reseller.keepGrowing"), icon: Award },
+    { 
+      label: t("reseller.totalOrders"), 
+      value: displayTotalOrders.toString(), 
+      subtitle: `${displayCompletedOrders} ${t("reseller.completed")}`, 
+      icon: Package 
+    },
+    { 
+      label: t("reseller.totalDeposits"), 
+      value: `$${(reseller.totalDeposits || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+      subtitle: t("reseller.lifetime"), 
+      icon: DollarSign 
+    },
+    { 
+      label: t("reseller.shopLevel"), 
+      value: reseller.level || "VIP-0", 
+      subtitle: t("reseller.keepGrowing"), 
+      icon: Award 
+    },
   ];
 
   return (
@@ -131,7 +197,9 @@ export default function ResellerDashboard() {
         <div className="glass-kpi-card flex-1 relative overflow-hidden rounded-[20px] p-4 flex flex-col justify-between">
           <div className="relative z-10">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{t("reseller.turnoverBalance")}</p>
-            <p className="text-xl font-bold text-foreground mt-1">${reseller.balance.toLocaleString()}</p>
+            <p className="text-xl font-bold text-foreground mt-1">
+              ${(reseller.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
           </div>
           <Link
             to={resellerPath("/reseller/profile")}
@@ -146,9 +214,18 @@ export default function ResellerDashboard() {
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{t("reseller.totalProfit")}</p>
             <div className="flex items-center gap-1.5 mt-1">
               <TrendingUp className="h-4 w-4 text-brand-gold" />
-              <p className="text-xl font-bold text-foreground">${reseller.totalEarnings.toLocaleString()}</p>
+              <p className="text-xl font-bold text-foreground">
+                ${(reseller.totalEarnings || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
             </div>
           </div>
+          <Link
+            to={resellerPath("/reseller/orders")}
+            state={{ tab: "Completed" }}
+            className="relative z-10 inline-flex items-center gap-1 mt-3 text-[10px] font-medium text-primary hover:underline"
+          >
+            {t("reseller.viewCollectedProfits", { defaultValue: "Collected profits" })} <ChevronRight className="h-3 w-3" />
+          </Link>
         </div>
       </div>
 
@@ -161,7 +238,9 @@ export default function ResellerDashboard() {
               <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{t("reseller.pendingBalance")}</p>
               <div className="flex items-center gap-1.5 mt-1.5">
                 <Clock className="h-4 w-4 text-warning" />
-                <p className="text-xl font-bold text-foreground">${Math.max(0, reseller.pendingBalance || 0).toLocaleString()}</p>
+                <p className="text-xl font-bold text-foreground">
+                  ${Math.max(0, reseller.pendingBalance || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
               </div>
               <p className="text-[9px] text-muted-foreground mt-0.5">
                 {(reseller.pendingBalance || 0) > 0 ? t("reseller.ongoingOrders") : t("reseller.noOngoing")}
@@ -177,7 +256,9 @@ export default function ResellerDashboard() {
               <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{t("reseller.unpickedBalance")}</p>
               <div className="flex items-center gap-1.5 mt-1.5">
                 <Package className="h-4 w-4 text-info" />
-                <p className="text-xl font-bold text-foreground">${Math.max(0, reseller.unpickedBalance || 0).toLocaleString()}</p>
+                <p className="text-xl font-bold text-foreground">
+                  ${Math.max(0, reseller.unpickedBalance || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
               </div>
               <p className="text-[9px] text-muted-foreground mt-0.5">
                 {(reseller.unpickedBalance || 0) > 0 ? t("reseller.newOrders") : t("reseller.noNewOrders")}
@@ -229,28 +310,106 @@ export default function ResellerDashboard() {
         </div>
       </div>
 
-      {/* AD Boosting Service Card */}
-      <div className="px-4 mt-5">
-        <button onClick={() => setAdBoostOpen(true)} className="block w-full text-left">
-          <div className="relative rounded-2xl overflow-hidden border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-primary/[0.03] to-transparent backdrop-blur-sm shadow-md hover:shadow-lg transition-shadow">
-            <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-primary/[0.08]" />
-            <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-primary/[0.06]" />
-            <div className="relative z-10 flex items-center gap-4 p-4">
-              <img src={adBoostCard} alt="AD Boosting Service" className="h-24 w-24 object-contain rounded-xl" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider">{t("reseller.newService")}</p>
-                <h3 className="text-sm font-bold text-foreground mt-1">{t("reseller.adBoost")}</h3>
-                <p className="text-[11px] text-muted-foreground mt-1">{t("reseller.adBoostingDesc")}</p>
-                <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-medium text-primary">
-                  {t("reseller.explorePlans")} <ChevronRight className="h-3 w-3" />
-                </span>
+      {/* "Expand Your Store" Dedicated Growth Card */}
+      <div className="px-4 mt-6">
+        <div 
+          onClick={() => {
+            setSelectedPlanName(null);
+            setAdBoostOpen(true);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setSelectedPlanName(null);
+              setAdBoostOpen(true);
+            }
+          }}
+          className="group relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-card via-card/95 to-primary/[0.04] p-5 shadow-lg backdrop-blur-md cursor-pointer transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]"
+        >
+          {/* Ambient Background Glows */}
+          <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-primary/15 blur-2xl pointer-events-none group-hover:bg-primary/20 transition-all duration-500" />
+          <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
+
+          {/* Badge & Top Label */}
+          <div className="relative z-10 flex items-center justify-between gap-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-primary/15 to-emerald-500/15 border border-primary/25 text-primary text-[11px] font-bold">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              <span>{t("reseller.growthEngine", { defaultValue: "Store Growth Engine" })}</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] text-muted-foreground font-medium">3 Plans</span>
+            </div>
+
+            <span className="text-[11px] font-bold text-primary inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform duration-200">
+              {t("reseller.viewPlans", { defaultValue: "View Plans" })}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </span>
+          </div>
+
+          {/* Title & Description */}
+          <div className="relative z-10 mt-3">
+            <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+              <Rocket className="h-5 w-5 text-primary shrink-0 group-hover:rotate-12 transition-transform duration-300" />
+              <span>{t("reseller.expandYourStore", { defaultValue: "Expand Your Store" })}</span>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+              {t("reseller.expandStoreDesc", {
+                defaultValue: "Boost your storefront exposure, attract up to 1,000+ daily buyers, and accelerate sales velocity with dedicated ad boosting plans.",
+              })}
+            </p>
+          </div>
+
+          {/* Key Advantages Tags */}
+          <div className="relative z-10 grid grid-cols-3 gap-2 mt-4 pt-3.5 border-t border-border/50">
+            <div className="flex flex-col items-start gap-1 p-2 rounded-xl bg-primary/[0.04] border border-primary/10">
+              <div className="flex items-center gap-1 text-[10px] text-amber-500 font-semibold">
+                <Zap className="h-3 w-3 shrink-0" />
+                <span>Traffic Boost</span>
               </div>
+              <span className="text-[11px] font-bold text-foreground truncate">10 – 1K+ / day</span>
+            </div>
+
+            <div className="flex flex-col items-start gap-1 p-2 rounded-xl bg-primary/[0.04] border border-primary/10">
+              <div className="flex items-center gap-1 text-[10px] text-emerald-500 font-semibold">
+                <TrendingUp className="h-3 w-3 shrink-0" />
+                <span>Ranking</span>
+              </div>
+              <span className="text-[11px] font-bold text-foreground truncate">Top Placement</span>
+            </div>
+
+            <div className="flex flex-col items-start gap-1 p-2 rounded-xl bg-primary/[0.04] border border-primary/10">
+              <div className="flex items-center gap-1 text-[10px] text-primary font-semibold">
+                <ShieldCheck className="h-3 w-3 shrink-0" />
+                <span>Duration</span>
+              </div>
+              <span className="text-[11px] font-bold text-foreground truncate">7 to 30 Days</span>
             </div>
           </div>
-        </button>
+
+          {/* Action CTA Button */}
+          <div className="relative z-10 mt-4 flex items-center justify-between gap-3 pt-2">
+            <span className="text-[11px] font-medium text-muted-foreground">
+              Starting from <strong className="text-foreground font-bold">$100</strong>
+            </span>
+            <Button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPlanName(null);
+                setAdBoostOpen(true);
+              }}
+              className="font-bold shadow-md rounded-xl h-9 px-4 text-xs gap-2 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+            >
+              <Rocket className="h-3.5 w-3.5" />
+              {t("reseller.expandStoreNow", { defaultValue: "Expand Store Now" })}
+              <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <AdBoostSheet open={adBoostOpen} onOpenChange={setAdBoostOpen} />
+      <AdBoostSheet open={adBoostOpen} onOpenChange={setAdBoostOpen} initialPlan={selectedPlanName} />
 
       {/* Average Visits Card */}
       <div className="px-4 mt-4">

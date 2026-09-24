@@ -217,13 +217,14 @@ export default function ARSPaymentInfoPage() {
       // Auto-calculate VIP level if deposits or withdrawals change
       if (data.updates.total_deposits !== undefined || data.updates.total_withdrawals !== undefined) {
         try {
-          const { data: existing } = await supabase.from('reseller_profiles').select('total_deposits, total_withdrawals, level').eq('id', data.id).single();
+          const { data: existing } = await supabase.from('reseller_profiles').select('total_deposits, total_withdrawals, level, registration_date, created_at').eq('id', data.id).single();
           if (existing) {
+            const regDate = (existing as any).registration_date || (existing as any).created_at;
             const finalDep = data.updates.total_deposits !== undefined ? Number(data.updates.total_deposits) : Number(existing.total_deposits || 0);
             const finalWith = data.updates.total_withdrawals !== undefined ? Number(data.updates.total_withdrawals) : Number(existing.total_withdrawals || 0);
             const netDeposits = finalDep - finalWith;
             const existingLevelNum = Number(String(existing.level || '0').match(/\d+/)?.[0] || '0');
-            const calculatedLevel = calculateVipLevel(netDeposits, existingLevelNum);
+            const calculatedLevel = calculateVipLevel(netDeposits, existingLevelNum, regDate);
             
             // Override passed level if calculated level is higher
             if (finalLevelToSet === undefined || calculatedLevel > finalLevelToSet) {

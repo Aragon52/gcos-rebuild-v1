@@ -5,12 +5,9 @@ import SQCVirtualOrdersPage from "@/pages/admin/SQCVirtualOrdersPage";
 export const Route = createFileRoute("/admin/sla/sqc-orders")({
   head: () => ({
     meta: [
-      { title: "SQC virtual orders — GCOS" },
-      { name: "description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:title", content: "SQC virtual orders — GCOS" },
-      { property: "og:description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Admin portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: AdminSlaSqcOrdersRoutePage,

@@ -255,7 +255,11 @@ export default function Footer() {
           </div>
 
           {/* Copyright and Legal Notice */}
-          <div className="mt-12 border-t border-white/10 pt-6">
+          <div className="mt-12 border-t border-white/10 pt-6 space-y-3">
+            <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-[11px] leading-relaxed text-amber-200/90 text-center md:text-left">
+              <strong className="text-amber-100 font-semibold">Demonstration &amp; Investor Showcase Project:</strong> This platform is an advanced operational demonstration designed to introduce and showcase a complete headless e-commerce architecture and multi-tier operational line-ups for the purpose of seeking business investors and strategic partners. No real financial deals, actual credit card charges, or commercial liabilities are executed in this environment.
+            </div>
+
             <div className="flex flex-col items-center justify-between gap-4 md:flex-row text-[11px]" style={{ color: "hsl(var(--footer-text))" }}>
               <p>
                 &copy; 2026 GlobalCart International Pte. Ltd. All rights reserved. Registered in Singapore (UEN: 202301984M).

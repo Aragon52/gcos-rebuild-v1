@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isAppModeDriven, PortalType, resellerPath } from "@/lib/subdomain";
 import { useTranslation } from "react-i18next";
-import resellerBg from "@/assets/reseller_bg.png";
+import resellerBg from "@/assets/images/shopping_complex_mall_1790263022364.jpg";
 
 interface ResellerRegisterModalProps {
   open: boolean;
@@ -27,6 +27,7 @@ export default function ResellerRegisterModal({ open, onOpenChange, initialRefer
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [referralCode, setReferralCode] = useState(initialReferralCode);
+  const [agreeTerms, setAgreeTerms] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showVerification, setShowVerification] = useState(false);
@@ -58,6 +59,10 @@ export default function ResellerRegisterModal({ open, onOpenChange, initialRefer
     }
     if (form.password !== confirmPassword) {
       setError(t('auth.passwordsDoNotMatch', { defaultValue: "Passwords do not match" }));
+      return;
+    }
+    if (!agreeTerms) {
+      setError(t('auth.mustAgreeTerms', { defaultValue: "Please agree to the Terms of Service & Privacy Policy to continue" }));
       return;
     }
 
@@ -204,6 +209,30 @@ export default function ResellerRegisterModal({ open, onOpenChange, initialRefer
                 <p className="mt-1 text-[11px] text-primary">{t('reseller.referralApplied', { defaultValue: "Referral applied" })}</p>
               </div>
             )}
+
+            {/* Agreement Checkbox (Checked by default) */}
+            <label className="flex items-start gap-2.5 cursor-pointer pt-1 text-xs text-white/80 select-none">
+              <input
+                type="checkbox"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-white/30 bg-white/10 text-primary accent-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="leading-snug text-[11px]">
+                {t("auth.agreeToTermsPrefix", { defaultValue: "I agree to the" })}{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                  {t("footer.termsOfService", { defaultValue: "Terms of Service" })}
+                </a>
+                {", "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                  {t("footer.privacyPolicy", { defaultValue: "Privacy Policy" })}
+                </a>
+                {" "}&amp;{" "}
+                <a href="/verification-compliance" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                  Reseller Terms
+                </a>
+              </span>
+            </label>
 
             <Button 
               type="submit" 

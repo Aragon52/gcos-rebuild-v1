@@ -56,10 +56,16 @@ export function useSearchParams(): [
 ] {
   const search = useRouterState({ select: (s) => s.location.search }) as unknown as Record<string, unknown>;
   const navigate = useTanNavigate();
-  const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(search ?? {})) {
-    if (v != null) params.set(k, String(v));
-  }
+  const searchEntries = JSON.stringify(search ?? {});
+  const params = React.useMemo(() => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(search ?? {})) {
+      if (v != null) p.set(k, String(v));
+    }
+    return p;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchEntries]);
+
   const setParams = React.useCallback(
     (
       next: URLSearchParams | Record<string, string> | ((prev: URLSearchParams) => URLSearchParams),

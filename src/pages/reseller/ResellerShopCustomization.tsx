@@ -192,6 +192,7 @@ export default function ResellerShopCustomization() {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     setIsSaving(true);
     try {
       await updateProfile({

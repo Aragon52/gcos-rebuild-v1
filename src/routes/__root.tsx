@@ -26,7 +26,7 @@ import { AdminAuthProvider } from "@/lib/admin-auth-context";
 import { ProductsProvider } from "@/lib/products-context";
 import { ProductSyncProvider } from "@/context/ProductSyncContext";
 import { SeasonalThemeProvider } from "@/lib/seasonal-theme-context";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary, ErrorFallbackView } from "@/components/ErrorBoundary";
 import { initPWAInstall } from "@/lib/pwa-install";
 
 function NotFoundComponent() {
@@ -59,33 +59,17 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
-      </div>
-    </div>
+    <ErrorFallbackView
+      error={error}
+      boundaryName="tanstack_root_error_component"
+      title="This page couldn't load"
+      description="Something went wrong on our end while loading this page. You can try refreshing or return home."
+      reset={() => {
+        router.invalidate();
+        reset();
+      }}
+      fullScreen
+    />
   );
 }
 
@@ -218,8 +202,8 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <I18nextProvider i18n={i18n}>
-        <ErrorBoundary>
+      <ErrorBoundary boundaryName="root_providers" fullScreen>
+        <I18nextProvider i18n={i18n}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <TooltipProvider>
               <ProductsProvider>
@@ -232,7 +216,9 @@ function RootComponent() {
                             <AdminAuthProvider>
                               <Toaster />
                               <Sonner />
-                              <Outlet />
+                              <ErrorBoundary boundaryName="router_outlet" fullScreen={false}>
+                                <Outlet />
+                              </ErrorBoundary>
                             </AdminAuthProvider>
                           </CustomerAuthProvider>
                         </SeasonalThemeProvider>
@@ -243,8 +229,8 @@ function RootComponent() {
               </ProductsProvider>
             </TooltipProvider>
           </ThemeProvider>
-        </ErrorBoundary>
-      </I18nextProvider>
+        </I18nextProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

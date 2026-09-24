@@ -5,12 +5,9 @@ import AdminCatalogPage from "@/pages/admin/AdminCatalogPage";
 export const Route = createFileRoute("/admin/catalog")({
   head: () => ({
     meta: [
-      { title: "Product Catalog — GCOS" },
-      { name: "description", content: "Browse sourced products and available stock for resellers." },
-      { property: "og:title", content: "Product Catalog — GCOS" },
-      { property: "og:description", content: "Browse sourced products and available stock for resellers." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Admin portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: AdminCatalogRoutePage,

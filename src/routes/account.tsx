@@ -5,13 +5,9 @@ import Account from "@/pages/Account";
 export const Route = createFileRoute("/account")({
   head: () => ({
     meta: [
-      { name: "robots", content: "noindex, nofollow" },
-      { title: "My account — GCOS" },
-      { name: "description", content: "Manage your GCOS account." },
-      { property: "og:title", content: "My account — GCOS" },
-      { property: "og:description", content: "Manage your GCOS account." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "User Portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: AccountRoutePage,

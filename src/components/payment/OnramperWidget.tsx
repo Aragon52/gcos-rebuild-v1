@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "@tanstack/react-router";
+import { Link } from "@/lib/router-compat";
 
 interface OnramperWidgetProps {
   /** Optional custom API key. Falls back to environment variable or sandbox key */
@@ -177,6 +177,7 @@ export default function OnramperWidget({
 
   // Create deposit request record in database
   const handleRecordDepositRequest = async () => {
+    if (submittingRequest) return;
     if (!resellerDocId) {
       toast({
         title: "Session Information Required",

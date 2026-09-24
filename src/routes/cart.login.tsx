@@ -5,12 +5,9 @@ import Login from "@/pages/Login";
 export const Route = createFileRoute("/cart/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — GCOS" },
-      { name: "description", content: "Sign in to your GCOS account." },
-      { property: "og:title", content: "Sign in — GCOS" },
-      { property: "og:description", content: "Sign in to your GCOS account." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "User Portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: CartLoginRoutePage,

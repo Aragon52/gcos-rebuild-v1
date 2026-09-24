@@ -2,7 +2,7 @@ import React from "react";
 import SEO from "@/components/SEO";
 import { 
   HelpCircle, ShieldCheck, Truck, RefreshCw, Lock, CreditCard, 
-  CheckCircle2, Mail, Phone 
+  CheckCircle2, Mail, Phone, Briefcase 
 } from "lucide-react";
 import { Link } from "@/lib/router-compat";
 import { Button } from "@/components/ui/button";
@@ -11,40 +11,40 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function FAQ() {
   const faqs = [
     {
-      q: "Is GlobalCart Online Shop a legitimate and verified e-commerce marketplace?",
-      a: "Yes. GlobalCart Online Shop is an officially registered marketplace operated by GlobalCart International Pte. Ltd. (ACRA UEN: 202301984M). All transactions are backed by 100% Buyer Protection, SSL 256-bit encryption, and PCI-DSS Level 1 secure payment processing.",
+      q: "What is the purpose of this GlobalCart Online Shop (GCOS) application?",
+      a: "This entire environment is developed and maintained as a comprehensive demonstration project and technology pilot. Its core purpose is to introduce and showcase a complete, fully operating headless e-commerce application architecture, multi-merchant reseller engine, and synchronized operations line-ups (such as ARS, ACH, and SLA governance) to prospective business partners and investors.",
     },
     {
-      q: "How does the Buyer Protection Guarantee work?",
-      a: "Under our Buyer Protection Guarantee, merchant payouts are safeguarded in escrow until you receive and verify your ordered items. If an item is not delivered within the guaranteed timeframe, arrives damaged, or does not match the product listing, you are entitled to an immediate replacement or full refund.",
+      q: "Are real financial transactions or commercial charges processed on this platform?",
+      a: "No. This environment is an operational demo and pilot showcase. There are NO real financial transactions, live credit card charges, or binding financial deals executed while dealing with or evaluating this application. All payment methods, checkout sequences, and wallet balance settlements operate in sandbox and simulation modes for technology demonstration purposes.",
     },
     {
-      q: "How can I track my order shipment?",
-      a: "Once your order is processed and dispatched by our logistics network, you will receive an email confirmation with an official carrier tracking link (e.g. DHL, FedEx, UPS). You can also track your order anytime directly in your Customer Account dashboard under 'My Orders'.",
+      q: "Who is behind this demonstration project?",
+      a: "The project is architected and presented by GlobalCart International Pte. Ltd. (ACRA UEN: 202301984M), established in Singapore, showcasing advanced headless commerce, multi-vendor marketplace engineering, and automated administrative consoles.",
     },
     {
-      q: "What payment methods are supported?",
-      a: "We accept Visa, MasterCard, American Express, Apple Pay, Google Pay, direct bank transfers (SEPA/Wire), and secure cryptocurrency payments (USDT TRC20/ERC20, Bitcoin, ETH). All card numbers are tokenized and never stored on our servers.",
+      q: "How does the demonstrated Buyer Protection Guarantee operate?",
+      a: "Under our Buyer Protection model, simulated merchant payouts are safeguarded in an automated escrow pipeline until the simulated delivery is confirmed. If an item is delayed, defective, or inconsistent with listing specifications, automated refund or replacement workflows are triggered.",
     },
     {
-      q: "What is your return and refund timeframe?",
-      a: "We offer a 14-day return window starting from the day your parcel is marked as delivered. If an item is defective or incorrect, return shipping costs are covered by the seller or platform.",
+      q: "How are logistics and delivery tracking simulated?",
+      a: "The platform integrates with standardized webhook models and carrier tracking APIs (DHL, FedEx, UPS). Real-time tracking IDs and milestone events demonstrate live shipment telemetry from warehouse dispatch to doorstep delivery.",
     },
     {
-      q: "How do I contact customer support if I need help?",
-      a: "Our customer service and compliance team is available 24/7/365. You can email support@globalcart-onlineshop.com, call +65 6800 4200, or submit a support ticket via our Contact Us page.",
+      q: "How can prospective investors or strategic partners get in touch?",
+      a: "We welcome discussions with prospective investors, commercial partners, and technology licensing evaluators. You can reach out directly via investors@globalcart-onlineshop.com or through our Contact page.",
     },
     {
-      q: "Are merchant and reseller storefronts verified before listing goods?",
-      a: "Yes. Every seller and reseller on our platform undergoes Know-Your-Customer (KYC) identity vetting, inventory verification, and must maintain strict Service Level Agreements (SLAs) regarding order fulfillment and customer response times.",
+      q: "How does the reseller and merchant onboarding module work?",
+      a: "The application features self-service partner onboarding, store customization, catalog syndication, and profit-sharing models (ARS), allowing verified entrepreneurs to run independent branded storefronts powered by the central headless engine.",
     },
   ];
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <SEO
-        title="Frequently Asked Questions (FAQ) & Trust Center - GlobalCart"
-        description="Find answers to common questions regarding GlobalCart order tracking, payment security, buyer protection, return policies, and seller verification."
+        title="Frequently Asked Questions (FAQ) & Investor FAQ - GlobalCart"
+        description="Find answers regarding GlobalCart's headless architecture, demonstration pilot scope, investor presentation details, and platform security."
         canonical="https://globalcart-onlineshop.com/faq"
         breadcrumbs={[
           { name: "Home", item: "/" },
@@ -52,7 +52,7 @@ export default function FAQ() {
         ]}
       />
 
-      <div className="text-center mb-12 space-y-3">
+      <div className="text-center mb-10 space-y-3">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
           <HelpCircle className="h-3.5 w-3.5" />
           <span>Trust &amp; Help Center</span>
@@ -61,8 +61,16 @@ export default function FAQ() {
           Frequently Asked Questions
         </h1>
         <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-          Clear answers about our buyer protection policies, shipping timelines, and payment security standards.
+          Architecture overview, demo project scope, investor relations, and operational capabilities.
         </p>
+      </div>
+
+      {/* Demo Project Notice Banner */}
+      <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 mb-8 flex items-start gap-3 text-xs text-muted-foreground">
+        <Briefcase className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <strong className="text-foreground">Demo &amp; Investor Showcase Notice:</strong> This platform is a fully functional demonstration environment designed for seeking business investors and showcasing complete headless e-commerce operations. No real financial deals are processed.
+        </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-sm mb-12">
@@ -82,18 +90,18 @@ export default function FAQ() {
 
       <div className="rounded-2xl border border-border bg-muted/40 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
         <div>
-          <h3 className="font-bold text-sm text-foreground">Still have questions?</h3>
-          <p className="text-xs text-muted-foreground">Our 24/7 customer care team is ready to assist you.</p>
+          <h3 className="font-bold text-sm text-foreground">Seeking Business Investment Details?</h3>
+          <p className="text-xs text-muted-foreground">Our team is available to discuss partnerships and platform licensing.</p>
         </div>
         <div className="flex gap-3">
           <Button asChild size="sm" className="rounded-xl">
             <Link to="/contact">
-              <Mail className="h-4 w-4 mr-2" /> Contact Us
+              <Mail className="h-4 w-4 mr-2" /> Contact Investor Desk
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="rounded-xl">
-            <Link to="/verification-compliance">
-              <ShieldCheck className="h-4 w-4 mr-2" /> Trust &amp; Safety
+            <Link to="/about">
+              <Briefcase className="h-4 w-4 mr-2" /> About the Project
             </Link>
           </Button>
         </div>

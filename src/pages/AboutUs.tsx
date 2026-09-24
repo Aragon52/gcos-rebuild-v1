@@ -2,7 +2,7 @@ import React from "react";
 import SEO from "@/components/SEO";
 import { 
   Building2, ShieldCheck, Globe, Users, Award, Lock, CheckCircle2, 
-  Truck, Clock, FileText, Phone, Mail, MapPin, ExternalLink, Sparkles 
+  Truck, Clock, FileText, Phone, Mail, MapPin, ExternalLink, Sparkles, Briefcase 
 } from "lucide-react";
 import { Link } from "@/lib/router-compat";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,8 @@ export default function AboutUs() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-5xl">
       <SEO
-        title="About Us - Corporate Identity, Security & Verified Marketplace"
-        description="Learn about GlobalCart International Pte. Ltd. (GCOS). Verified multi-vendor e-commerce platform offering 100% Buyer Protection, SSL 256-bit security, and global shipping."
+        title="About Us - Corporate Identity, Security & Headless Demo Project"
+        description="Learn about GlobalCart International Pte. Ltd. (GCOS). An advanced headless e-commerce technology pilot and investor presentation environment showcasing multi-merchant capabilities."
         canonical="https://globalcart-onlineshop.com/about"
         breadcrumbs={[
           { name: "Home", item: "/" },
@@ -22,15 +22,29 @@ export default function AboutUs() {
       />
 
       {/* Hero Header */}
-      <div className="text-center mb-16 space-y-4">
+      <div className="text-center mb-12 space-y-4">
         <Badge variant="outline" className="px-3 py-1 text-xs font-semibold text-primary border-primary/30 bg-primary/5 uppercase tracking-wider">
-          Official Corporate Profile
+          Technology Pilot &amp; Corporate Profile
         </Badge>
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
           About GlobalCart Online Shop
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Operating under <strong className="text-foreground">GlobalCart International Pte. Ltd.</strong>, we empower verified independent merchants, resellers, and global shoppers with a secure, transparent, and trusted digital marketplace.
+          Operating under <strong className="text-foreground">GlobalCart International Pte. Ltd.</strong>, GCOS demonstrates a complete headless e-commerce application architecture, multi-merchant reseller engine, and synchronized operations line-ups.
+        </p>
+      </div>
+
+      {/* Demo Project & Investor Showcase Notice */}
+      <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 space-y-3 mb-12">
+        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
+          <Briefcase className="h-5 w-5 flex-shrink-0" />
+          <span>Demonstration Project &amp; Investor Presentation Notice</span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          This platform is engineered as a comprehensive <strong>demonstration pilot</strong> to introduce and showcase our end-to-end headless e-commerce stack and operational workflows to <strong>prospective business investors, strategic partners, and technology evaluators</strong>.
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <strong>Simulated Commercial Environment:</strong> All catalogs, inventory items, orders, reseller store setups, and payment flows within this environment are functioning for simulation and architecture demonstration purposes. <strong>There are no real financial transactions, live consumer credit debits, or commercial financial liabilities</strong> executed while using or evaluating this demo app.
         </p>
       </div>
 
@@ -39,54 +53,54 @@ export default function AboutUs() {
         <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-center space-y-1">
           <ShieldCheck className="h-6 w-6 text-emerald-600 mx-auto" />
           <div className="text-xs font-bold text-foreground">Verified Merchant Network</div>
-          <div className="text-[11px] text-muted-foreground">100% KYC & Merchant Vetting</div>
+          <div className="text-[11px] text-muted-foreground">100% KYC &amp; Merchant Vetting</div>
         </div>
         <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 text-center space-y-1">
           <Lock className="h-6 w-6 text-blue-600 mx-auto" />
           <div className="text-xs font-bold text-foreground">256-Bit SSL Encryption</div>
-          <div className="text-[11px] text-muted-foreground">PCI-DSS Level 1 Compliant</div>
+          <div className="text-[11px] text-muted-foreground">PCI-DSS Level 1 Compliant Architecture</div>
         </div>
         <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center space-y-1">
           <Award className="h-6 w-6 text-amber-600 mx-auto" />
-          <div className="text-xs font-bold text-foreground">Buyer Protection</div>
-          <div className="text-[11px] text-muted-foreground">Guaranteed Delivery or Full Refund</div>
+          <div className="text-xs font-bold text-foreground">Buyer Protection Escrow</div>
+          <div className="text-[11px] text-muted-foreground">Integrated Escrow Settlement Logic</div>
         </div>
         <div className="p-4 rounded-xl border border-purple-500/20 bg-purple-500/5 text-center space-y-1">
           <Clock className="h-6 w-6 text-purple-600 mx-auto" />
-          <div className="text-xs font-bold text-foreground">24/7 Global Support</div>
-          <div className="text-[11px] text-muted-foreground">Dedicated Multi-lingual Staff</div>
+          <div className="text-xs font-bold text-foreground">Operational Line-ups</div>
+          <div className="text-[11px] text-muted-foreground">ARS, ACH &amp; SLA Management</div>
         </div>
       </div>
 
       {/* Company Mission & Operational Model */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16 items-center">
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-foreground">Our Core Mission & Standards</h2>
+          <h2 className="text-2xl font-bold text-foreground">Our Core Architecture &amp; Vision</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Founded with the conviction that international e-commerce requires rigorous trust, transparent business credentials, and rapid resolution, GlobalCart bridges quality manufacturers and vetted merchant resellers directly with consumers across 100+ countries.
+            Founded to advance headless commerce standards, GlobalCart connects quality product suppliers, vetted reseller entrepreneurs, and end consumers through a high-performance, modular application framework.
           </p>
           <p className="text-muted-foreground leading-relaxed">
-            Every transaction is safeguarded by escrow-based fulfillment standards: funds are safely held until the customer receives and verifies the ordered products according to stated specifications.
+            Every transaction is safeguarded by escrow-based fulfillment standards: funds are held until the customer receives and verifies the ordered products according to stated specifications.
           </p>
           <ul className="space-y-2 pt-2 text-sm text-foreground">
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-              <span>Direct origin inspection on all consumer electronics & apparel</span>
+              <span>Modular headless APIs connecting catalog, inventory, and checkout</span>
             </li>
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-              <span>Full compliance with GDPR, CCPA, and international consumer rights</span>
+              <span>Full compliance with GDPR, CCPA, and international consumer privacy</span>
             </li>
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-              <span>Strict anti-fraud monitoring and encrypted payment processing</span>
+              <span>Automated partner payouts (ARS) and clearing house governance (ACH)</span>
             </li>
           </ul>
         </div>
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
-            Corporate Registration & Identity
+            Corporate Registration &amp; Identity
           </h3>
           <div className="space-y-2.5 text-xs">
             <div className="flex justify-between py-1.5 border-b border-border">
@@ -106,8 +120,8 @@ export default function AboutUs() {
               <span className="font-semibold text-foreground text-right">30 Cecil Street #21-05, Singapore 048716</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-border">
-              <span className="text-muted-foreground">Official Email:</span>
-              <span className="font-semibold text-foreground">support@globalcart-onlineshop.com</span>
+              <span className="text-muted-foreground">Investor Relations:</span>
+              <span className="font-semibold text-primary">investors@globalcart-onlineshop.com</span>
             </div>
             <div className="flex justify-between py-1.5">
               <span className="text-muted-foreground">Customer Support Hotline:</span>
@@ -119,7 +133,7 @@ export default function AboutUs() {
 
       {/* Security & Buyer Protection Pillars */}
       <div className="mb-16">
-        <h2 className="text-2xl font-bold text-center mb-8 text-foreground">Consumer Protection & Trust Pillars</h2>
+        <h2 className="text-2xl font-bold text-center mb-8 text-foreground">Ecosystem &amp; Operational Governance</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-2xl border border-border bg-card space-y-3">
             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -127,7 +141,7 @@ export default function AboutUs() {
             </div>
             <h3 className="font-bold text-base text-foreground">Vetted Merchant Governance</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Resellers must complete identity verification (KYC), store ownership review, and maintain SLA fulfillment compliance to list goods on the platform.
+              Resellers complete identity verification (KYC), store ownership review, and maintain SLA fulfillment compliance to list goods on the platform.
             </p>
           </div>
           <div className="p-6 rounded-2xl border border-border bg-card space-y-3">
@@ -136,7 +150,7 @@ export default function AboutUs() {
             </div>
             <h3 className="font-bold text-base text-foreground">End-to-End Tracked Delivery</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Every parcel is dispatched with official courier tracking (DHL, FedEx, UPS, EMS) allowing real-time milestone updates from warehouse to doorstep.
+              Simulated telemetry pipelines with official courier tracking (DHL, FedEx, UPS, EMS) allowing real-time milestone updates from warehouse to doorstep.
             </p>
           </div>
           <div className="p-6 rounded-2xl border border-border bg-card space-y-3">
@@ -154,15 +168,15 @@ export default function AboutUs() {
       {/* Contact Call-To-Action Banner */}
       <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
         <div className="space-y-2 max-w-xl">
-          <h3 className="text-xl md:text-2xl font-bold text-foreground">Have Questions or Need Verification?</h3>
+          <h3 className="text-xl md:text-2xl font-bold text-foreground">Interested in Investment or Strategic Partnership?</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Our compliance and customer care teams are available around the clock. Contact us anytime for order inquiries, partnership verification, or policy clarifications.
+            We are actively introducing this headless e-commerce technology and seeking business investors. Contact our investor desk to schedule a technical walkthrough.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild size="lg" className="rounded-xl">
             <Link to="/contact">
-              <Mail className="h-4 w-4 mr-2" /> Contact Support
+              <Mail className="h-4 w-4 mr-2" /> Contact Investor Desk
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="rounded-xl">

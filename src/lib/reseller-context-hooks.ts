@@ -14,6 +14,7 @@ export interface ResellerProfile {
   shopName: string;
   shopLogo: string;
   shopHeroBanner: string;
+  shopDescription?: string;
   shopSlug?: string;
   storeTheme: StoreTheme;
   level: string;
@@ -46,6 +47,7 @@ export interface ResellerContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: { firstName: string; lastName: string; emailOrPhone: string; password: string; shopName?: string; referralCode?: string; isPhone?: boolean }) => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle: (referralCode?: string) => Promise<{ error?: string }>;
   logout: () => void;
   updateProfile: (updates: Partial<ResellerProfile>) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
@@ -82,7 +84,11 @@ export const VIP_LEVELS: LevelRequirement[] = [
   { level: "VIP-5", profitMargin: 0.40, productLimit: 150, depositRequirement: 100000 },
 ];
 
-export function getLevelByDeposit(netDeposit: number, currentLevelLabel: string = "VIP-0"): LevelRequirement {
+export function getLevelByDeposit(
+  netDeposit: number, 
+  currentLevelLabel: string = "VIP-0",
+  registrationDate?: string | Date | null
+): LevelRequirement {
   const currentLevelNum = Number(currentLevelLabel.replace("VIP-", "")) || 0;
   
   let metLevelIndex = 0;

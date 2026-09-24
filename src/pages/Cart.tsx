@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { LEVEL_PROFIT_MAP } from "@/lib/reseller-context-hooks";
+import { getVipMarginProfit } from "@/lib/vip-utils";
 import ResellerChatDialog from "@/components/messaging/ResellerChatDialog";
 
 export default function Cart() {
@@ -136,7 +137,8 @@ export default function Cart() {
           resellerData = profile;
           const level = profile.level || "VIP-0";
           const levelNum = typeof level === 'string' ? Number(level.replace('VIP-', '')) : Number(level);
-          profitMargin = LEVEL_PROFIT_MAP[levelNum] || 0.15;
+          const regDate = profile.registration_date || profile.created_at;
+          profitMargin = getVipMarginProfit(levelNum, regDate);
           // The totalPrice in cart is already adjusted (price * (1 + profitMargin))
           // So serviceCost = totalPrice / (1 + profitMargin)
           serviceCost = subtotal / (1 + profitMargin);

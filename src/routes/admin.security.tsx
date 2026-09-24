@@ -5,12 +5,9 @@ import { SecurityPage } from "@/pages/admin/AdminPlaceholderPages";
 export const Route = createFileRoute("/admin/security")({
   head: () => ({
     meta: [
-      { title: "Security — GCOS" },
-      { name: "description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:title", content: "Security — GCOS" },
-      { property: "og:description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Admin portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: AdminSecurityRoutePage,

@@ -77,6 +77,7 @@ export default function ProfileSettingsSheet() {
   };
 
   const handleSaveInfo = async () => {
+    if (isUpdating) return;
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       toast({ title: t("reseller.missingFields"), description: t("reseller.nameEmailRequired"), variant: "destructive" });
       return;
@@ -100,6 +101,7 @@ export default function ProfileSettingsSheet() {
   };
 
   const handleChangePassword = async () => {
+    if (isUpdating) return;
     setPasswordError("");
     if (!currentPassword) { setPasswordError(t("auth.password") + " is required"); return; }
     if (newPassword.length < 6) { setPasswordError(t("reseller.newPassword") + " must be at least 6 characters"); return; }
@@ -121,6 +123,7 @@ export default function ProfileSettingsSheet() {
   };
 
   const handleSavePaymentInfo = async () => {
+    if (isUpdating) return;
     setIsUpdating(true);
     try {
       await updateProfile({

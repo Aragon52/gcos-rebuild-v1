@@ -1,25 +1,73 @@
 import React from "react";
+import SEO from "@/components/SEO";
+import { RotateCcw, ShieldCheck, CheckCircle2, Briefcase, Mail, Clock } from "lucide-react";
+import { Link } from "@/lib/router-compat";
+import { Button } from "@/components/ui/button";
 
 export default function ReturnRefundPolicy() {
   return (
-    <article className="container mx-auto max-w-4xl px-4 py-12 md:py-16">
-      <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary">GCOS customer information</p>
-      <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground md:text-4xl">Return &amp; Refund Policy</h1>
-      <p className="mb-10 text-sm text-muted-foreground">Last updated: March 27, 2026</p>
-      <div className="prose prose-slate max-w-none">
-        <h2>1. Requesting a return</h2>
-        <p>Return eligibility depends on the product, seller terms, and applicable law. Submit a return request through your account or contact support@globalcart-onlineshop.com as soon as possible, including your order number and the reason for the request.</p>
-        <h2>2. Condition of returned items</h2>
-        <p>Unless a product is faulty or incorrectly supplied, items should be unused, complete, and returned in their original packaging with accessories and documentation. Some products, including personalized, perishable, hygiene-sensitive, or digital products, may not be eligible for return.</p>
-        <h2>3. Review and approval</h2>
-        <p>The seller reviews each request against the applicable return terms. We may ask for photographs or other information to verify damage, defects, or incorrect fulfillment. Do not send an item back until return instructions have been provided.</p>
-        <h2>4. Refunds</h2>
-        <p>Approved refunds are issued to the original payment method after the returned item is received and reviewed, or when the seller confirms an eligible exception. Processing times depend on the payment provider and bank. Shipping charges, duties, and return shipping costs may be non-refundable unless the item is faulty, damaged, or incorrectly supplied.</p>
-        <h2>5. Faulty or incorrect items</h2>
-        <p>If your item arrives faulty, damaged, or different from what you ordered, contact us promptly. We will work with the seller to arrange an appropriate remedy, which may include a replacement, repair, or refund.</p>
-        <h2>6. Contact</h2>
-        <p>For return or refund support, contact support@globalcart-onlineshop.com with your order number and supporting details.</p>
-      </div>
-    </article>
+    <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <SEO
+        title="Return & Refund Policy - Demo Project Disclosure - GlobalCart"
+        description="Review return eligibility, refund processes, buyer guarantee workflows, and demo environment notices for GlobalCart."
+        canonical="https://globalcart-onlineshop.com/returns-refunds"
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Return & Refund Policy", item: "/returns-refunds" },
+        ]}
+      />
+
+      <article className="space-y-6">
+        <div className="border-b border-border pb-6 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Customer Protection &amp; Operations</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">Return &amp; Refund Policy</h1>
+          <p className="text-xs text-muted-foreground">Last updated &amp; effective: September 24, 2026</p>
+        </div>
+
+        {/* Demo Project & Investor Showcase Notice */}
+        <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 space-y-3">
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
+            <Briefcase className="h-5 w-5 flex-shrink-0" />
+            <span>Demonstration Pilot &amp; Operational Workflow Notice</span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This platform operates as a <strong>demonstration project and investor presentation pilot</strong> showcasing an advanced headless e-commerce architecture, integrated return management, and customer satisfaction workflows.
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong>Simulated Return &amp; Refund Management:</strong> Return requests, RMA tracking, and refund status updates illustrate the automated dispute and customer care capabilities of our platform without involving real monetary debits or physical merchandise handling.
+          </p>
+        </div>
+
+        <div className="prose prose-slate dark:prose-invert max-w-none space-y-6 text-sm text-foreground/90 leading-relaxed">
+          <section className="space-y-3">
+            <h2 className="text-xl font-bold text-foreground">1. Return Request Initiation</h2>
+            <p className="text-muted-foreground">
+              Customers can initiate return and replacement workflows directly from their account dashboard or by submitting an inquiry with order details. The automated system categorizes claims based on defect type, damaged packaging, or transit delays.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-bold text-foreground">2. Item Condition Standards &amp; Verification</h2>
+            <p className="text-muted-foreground text-xs">
+              Except for defective or damaged goods, items are evaluated to ensure they remain complete with original packaging. The platform's automated quality control (SQC) modules assist merchants in verifying claims via photo and serial verification.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-bold text-foreground">3. Automated Escrow Reversal &amp; Refund Execution</h2>
+            <p className="text-muted-foreground text-xs">
+              Once a return is approved by the merchant or customer care administrator, the platform executes an automated escrow reversal, crediting the original method of payment (or demo digital wallet balance).
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-bold text-foreground">4. Support &amp; Dispute Inquiries</h2>
+            <p className="text-muted-foreground text-xs">
+              For any return inquiries or demonstration feedback, contact our operations desk at <span className="text-primary font-semibold">support@globalcart-onlineshop.com</span>.
+            </p>
+          </section>
+        </div>
+      </article>
+    </div>
   );
 }

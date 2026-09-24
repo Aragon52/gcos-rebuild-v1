@@ -5,12 +5,9 @@ import AdminMessengerPage from "@/pages/admin/AdminMessengerPage";
 export const Route = createFileRoute("/admin/messenger")({
   head: () => ({
     meta: [
-      { title: "Admin messenger — GCOS" },
-      { name: "description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:title", content: "Admin messenger — GCOS" },
-      { property: "og:description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Admin portal — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: AdminMessengerRoutePage,

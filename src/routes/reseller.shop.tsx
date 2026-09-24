@@ -5,12 +5,9 @@ import ResellerShop from "@/pages/reseller/ResellerShop";
 export const Route = createFileRoute("/reseller/shop")({
   head: () => ({
     meta: [
-      { title: "My shop — GCOS" },
-      { name: "description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:title", content: "My shop — GCOS" },
-      { property: "og:description", content: "GCOS — Global Commerce Online Store marketplace." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Reseller Shop Management — GCOS" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
   }),
   component: ResellerShopRoutePage,

@@ -128,7 +128,7 @@ export default function ResellerDepositSheet({ open, onOpenChange, initialAmount
   };
 
   const handleSubmitDeposit = async () => {
-    if (!reseller) return;
+    if (!reseller || submitting) return;
     setSubmitting(true);
     
     try {

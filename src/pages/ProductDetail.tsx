@@ -359,7 +359,7 @@ export default function ProductDetail() {
                 {Object.entries(adjustedProduct.specifications).map(([key, value], i) => (
                   <div key={key} className={`flex items-center justify-between px-4 py-3 text-sm ${i % 2 === 0 ? "bg-muted/30" : "bg-background"}`}>
                     <span className="font-medium text-muted-foreground">{key}</span>
-                    <span className="font-semibold text-foreground">{value}</span>
+                    <span className="font-semibold text-foreground">{String(value ?? "")}</span>
                   </div>
                 ))}
               </div>
