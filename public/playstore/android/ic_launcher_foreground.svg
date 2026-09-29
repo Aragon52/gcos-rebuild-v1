@@ -1,0 +1,24 @@
+
+<svg width="432" height="432" viewBox="0 0 432 432" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="50" y1="50" x2="380" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#CA8A04"/>
+    </linearGradient>
+    <linearGradient id="green" x1="100" y1="100" x2="300" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(68, 55) scale(2.5)">
+    <line x1="5" y1="28" x2="22" y2="28" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="22" y1="28" x2="32" y2="48" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M28 48 L98 48 Q100 48 99 52 L89 82 Q88 85 85 85 L39 85 Q36 85 35 82 L27 52 Q26 48 28 48 Z" stroke="url(#gold)" stroke-width="4.5" stroke-linejoin="round" fill="none"/>
+    <circle cx="46" cy="100" r="8" stroke="url(#gold)" stroke-width="4" fill="#0F172A"/>
+    <circle cx="78" cy="100" r="8" stroke="url(#gold)" stroke-width="4" fill="#0F172A"/>
+    <rect x="45" y="64" width="14" height="17" rx="2" fill="url(#green)"/>
+    <rect x="57" y="68" width="11" height="13" rx="1.5" fill="url(#gold)"/>
+    <text x="62" y="56" fill="url(#gold)" font-family="sans-serif" font-weight="900" font-size="54" transform="rotate(-30, 62, 56)">G</text>
+    <text x="97" y="56" fill="url(#green)" font-family="sans-serif" font-weight="900" font-size="54" transform="rotate(-30, 97, 56)">C</text>
+  </g>
+</svg>

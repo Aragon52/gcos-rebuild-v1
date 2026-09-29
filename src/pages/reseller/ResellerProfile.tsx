@@ -21,6 +21,7 @@ import ResellerDepositSheet from "@/components/reseller/ResellerDepositSheet";
 import ResellerWithdrawalSheet from "@/components/reseller/ResellerWithdrawalSheet";
 import FinancialStatementsSheet from "@/components/reseller/FinancialStatementsSheet";
 import LanguageSettingsSheet from "@/components/reseller/LanguageSettingsSheet";
+import PlayStoreAssetSheet from "@/components/reseller/PlayStoreAssetSheet";
 
 export default function ResellerProfile() {
   const { reseller, logout } = useReseller();
@@ -189,6 +190,9 @@ export default function ResellerProfile() {
           <p className="text-[10px] text-muted-foreground">{t("reseller.publicShopLink")}</p>
         </a>
       </div>
+
+      {/* Google Play Store & Brand Asset Package */}
+      <PlayStoreAssetSheet />
 
       {/* Language Settings */}
       <LanguageSettingsSheet />

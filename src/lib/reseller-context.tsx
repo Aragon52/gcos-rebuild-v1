@@ -485,23 +485,62 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         const selectionData = selectionRes.data;
         const selectedProductIds = selectionData ? selectionData.map((d: Record<string, unknown>) => String(d.product_id)) : [];
 
-        // Compute collected profit from completed orders
+        // Compute collected profit from completed orders & active order balances
         const orderRows = ordersRes.data || [];
         const orderCount = orderRows.length || Number(profileData.total_orders || 0);
+        
         const completedProfit = orderRows
           .filter((r: Record<string, unknown>) => String(r.status || '').toLowerCase() === 'completed')
           .reduce((sum: number, row: Record<string, unknown>) => sum + Number(row.profit ?? row.profits ?? 0), 0);
 
+        const ongoingAmount = orderRows
+          .filter((r: Record<string, unknown>) => {
+            const st = String(r.status || '').toLowerCase();
+            return st === 'ongoing' || st === 'shipped' || st === 'in_progress';
+          })
+          .reduce((sum: number, row: Record<string, unknown>) => sum + Number(row.total_amount ?? row.total_cost ?? 0), 0);
+
+        const pendingAmount = orderRows
+          .filter((r: Record<string, unknown>) => {
+            const st = String(r.status || '').toLowerCase();
+            return st === 'pending' || st === 'processing';
+          })
+          .reduce((sum: number, row: Record<string, unknown>) => sum + Number(row.total_amount ?? row.total_cost ?? 0), 0);
+
         const profileTotalEarnings = Number(profileData.total_earnings || 0);
         const resolvedTotalEarnings = Number(Math.max(profileTotalEarnings, completedProfit).toFixed(2));
 
-        // If completed profit from orders exceeds recorded profile total_earnings, sync it back to DB
+        const profilePendingBalance = Number(profileData.pending_balance || 0);
+        // If there are orders and 0 ongoing, or if ongoing sum differs, use dynamically verified ongoing amount
+        const resolvedPendingBalance = orderRows.length === 0 && profilePendingBalance > 0
+          ? 0
+          : (orderRows.length > 0 ? ongoingAmount : profilePendingBalance);
+
+        const profileUnpickedBalance = Number(profileData.unpicked_balance || 0);
+        const resolvedUnpickedBalance = orderRows.length === 0 && profileUnpickedBalance > 0
+          ? 0
+          : (orderRows.length > 0 ? pendingAmount : profileUnpickedBalance);
+
+        // Auto-synchronize discrepancies back to DB in background
+        const dbSyncUpdates: Record<string, unknown> = {};
         if (completedProfit > profileTotalEarnings) {
+          dbSyncUpdates.total_earnings = resolvedTotalEarnings;
+          dbSyncUpdates.total_orders = orderCount;
+        }
+        if (Math.abs(profilePendingBalance - resolvedPendingBalance) > 0.01) {
+          dbSyncUpdates.pending_balance = resolvedPendingBalance;
+        }
+        if (Math.abs(profileUnpickedBalance - resolvedUnpickedBalance) > 0.01 && orderRows.length === 0) {
+          dbSyncUpdates.unpicked_balance = resolvedUnpickedBalance;
+        }
+
+        if (Object.keys(dbSyncUpdates).length > 0) {
+          dbSyncUpdates.updated_at = new Date().toISOString();
           supabase
             .from('reseller_profiles')
-            .update({ total_earnings: resolvedTotalEarnings, total_orders: orderCount })
+            .update(dbSyncUpdates)
             .eq('id', userId)
-            .then(() => {}, () => {});
+            .then(() => {}, (e) => console.warn("[RESELLER_CONTEXT] Background DB balance sync failed:", e));
         }
 
       let custom: CustomSettings = {};
@@ -541,8 +580,8 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         storeTheme: (custom.storeTheme as StoreTheme) || profileData.store_theme || 'minimal',
         verified: profileData.verified,
         balance: Number(profileData.balance || 0),
-        pendingBalance: Number(profileData.pending_balance || 0),
-        unpickedBalance: Number(profileData.unpicked_balance || 0),
+        pendingBalance: resolvedPendingBalance,
+        unpickedBalance: resolvedUnpickedBalance,
         totalEarnings: resolvedTotalEarnings,
         totalDeposits: totalDeposits,
         totalOrders: orderCount,

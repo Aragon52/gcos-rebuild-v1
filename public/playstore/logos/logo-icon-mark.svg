@@ -1,0 +1,91 @@
+
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0A0F1D"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="50" y1="50" x2="450" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="30%" stop-color="#EAB308"/>
+      <stop offset="70%" stop-color="#CA8A04"/>
+      <stop offset="100%" stop-color="#A16207"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="100" y1="100" x2="400" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="40%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="emeraldGlass" x1="150" y1="150" x2="350" y2="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#047857" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="glowG" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="iconGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#10B981" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Base Container -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="510" height="510" x="1" y="1" rx="111" stroke="url(#goldGrad)" stroke-width="2" stroke-opacity="0.3"/>
+  <circle cx="256" cy="230" r="180" fill="url(#glowG)"/>
+
+  <!-- Subtle High-tech Grid Lines -->
+  <path d="M96 256 H416 M256 96 V416 M140 140 L372 372 M372 140 L140 372" stroke="#334155" stroke-width="1.5" stroke-opacity="0.35" stroke-dasharray="6 6"/>
+
+  <g filter="url(#dropShadow)" transform="translate(4, -8)">
+    <!-- Cart Base Wireframe & Wheels -->
+    <path d="M110 160 H165 L200 310 Q204 322 218 322 H370 Q384 322 388 310 L418 195 Q422 180 405 180 H180" 
+          stroke="url(#goldGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Cart Front Support Bars -->
+    <line x1="230" y1="322" x2="218" y2="355" stroke="url(#goldGrad)" stroke-width="14" stroke-linecap="round"/>
+    <line x1="360" y1="322" x2="372" y2="355" stroke="url(#goldGrad)" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- Glowing Wheels -->
+    <circle cx="215" cy="385" r="28" fill="#0F172A" stroke="url(#goldGrad)" stroke-width="12"/>
+    <circle cx="215" cy="385" r="10" fill="#10B981"/>
+    <circle cx="375" cy="385" r="28" fill="#0F172A" stroke="url(#goldGrad)" stroke-width="12"/>
+    <circle cx="375" cy="385" r="10" fill="#10B981"/>
+
+    <!-- 3D Merchant Storefront / Shopping Package Inside Cart -->
+    <g filter="url(#iconGlow)">
+      <!-- Store Building / Package 1 (Emerald) -->
+      <rect x="210" y="200" width="85" height="100" rx="14" fill="url(#emeraldGlass)" stroke="#34D399" stroke-width="3"/>
+      <!-- Store Roof Awning Stripes -->
+      <path d="M205 200 L252 170 L300 200 Z" fill="#047857"/>
+      <path d="M215 200 L252 175 L260 200 Z" fill="#34D399"/>
+      <!-- Store Door / Growth Bar -->
+      <rect x="235" y="240" width="35" height="60" rx="6" fill="#0F172A" fill-opacity="0.85"/>
+      <path d="M245 285 L245 260 M252 285 L252 250 M260 285 L260 240" stroke="#34D399" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- Package 2 (Gold Box) -->
+      <rect x="290" y="215" width="80" height="85" rx="12" fill="url(#goldGrad)"/>
+      <path d="M330 215 V300 M290 257 H370" stroke="#78350F" stroke-width="4" stroke-opacity="0.4"/>
+      <!-- Ribbon Bow -->
+      <circle cx="330" cy="215" r="8" fill="#FDE047"/>
+    </g>
+
+    <!-- Global Cart Letters Badge G C -->
+    <g transform="translate(195, 115) scale(0.95)">
+      <text x="50" y="70" fill="url(#goldGrad)" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="76" letter-spacing="-2">G</text>
+      <text x="105" y="70" fill="url(#greenGrad)" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="76" letter-spacing="-2">C</text>
+      <!-- Sparkle -->
+      <path d="M150 25 Q150 40 165 40 Q150 40 150 55 Q150 40 135 40 Q150 40 150 25 Z" fill="#FDE047"/>
+    </g>
+  </g>
+
+  <!-- Bottom Accent Ribbon / VIP Emblem Badge -->
+  <g transform="translate(146, 440)">
+    <rect width="220" height="42" rx="21" fill="#1E293B" stroke="url(#goldGrad)" stroke-width="2"/>
+    <text x="110" y="27" text-anchor="middle" fill="#FDE047" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="18" letter-spacing="3">RESELLER PORTAL</text>
+  </g>
+</svg>

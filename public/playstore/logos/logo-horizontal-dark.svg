@@ -1,0 +1,19 @@
+
+<svg width="480" height="120" viewBox="0 0 480 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cart Mark -->
+  <g transform="translate(10, 10) scale(0.8)">
+    <line x1="5" y1="28" x2="22" y2="28" stroke="#EAB308" stroke-width="6" stroke-linecap="round"/>
+    <line x1="22" y1="28" x2="32" y2="48" stroke="#EAB308" stroke-width="6" stroke-linecap="round"/>
+    <path d="M28 48 L98 48 Q100 48 99 52 L89 82 Q88 85 85 85 L39 85 Q36 85 35 82 L27 52 Q26 48 28 48 Z" stroke="#EAB308" stroke-width="5.5" stroke-linejoin="round" fill="none"/>
+    <circle cx="46" cy="100" r="9" stroke="#EAB308" stroke-width="5" fill="#0F172A"/>
+    <circle cx="78" cy="100" r="9" stroke="#EAB308" stroke-width="5" fill="#0F172A"/>
+    <rect x="45" y="64" width="14" height="17" rx="2" fill="#10B981"/>
+    <rect x="57" y="68" width="11" height="13" rx="1.5" fill="#EAB308"/>
+    <text x="56" y="52" fill="#EAB308" font-family="system-ui, sans-serif" font-weight="900" font-size="52" transform="rotate(-20, 56, 52)">G</text>
+    <text x="86" y="52" fill="#10B981" font-family="system-ui, sans-serif" font-weight="900" font-size="52" transform="rotate(-20, 86, 52)">C</text>
+  </g>
+  <!-- Text Lockup -->
+  <text x="130" y="58" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="34" letter-spacing="-0.5">GlobalCart</text>
+  <text x="300" y="58" fill="#EAB308" font-family="system-ui, sans-serif" font-weight="900" font-size="34" letter-spacing="-0.5">OS</text>
+  <text x="132" y="88" fill="#10B981" font-family="system-ui, sans-serif" font-weight="800" font-size="16" letter-spacing="3">RESELLER PORTAL</text>
+</svg>

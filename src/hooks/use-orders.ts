@@ -213,21 +213,21 @@ export function useUpdateOrderStatus() {
              if (newStatus === "Completed" && previousStatus !== "completed") {
                 updates.total_earnings = (profile.total_earnings || 0) + profit;
                 if (previousStatus === "ongoing" || previousStatus === "shipped") {
-                   updates.pending_balance = (profile.pending_balance || 0) - totalAmount;
+                   updates.pending_balance = Math.max(0, (profile.pending_balance || 0) - totalAmount);
                    updates.balance = (profile.balance || 0) + totalAmount;
                 } else if (previousStatus === "pending" || previousStatus === "processing") {
-                   updates.unpicked_balance = (profile.unpicked_balance || 0) - totalAmount;
+                   updates.unpicked_balance = Math.max(0, (profile.unpicked_balance || 0) - totalAmount);
                    updates.balance = (profile.balance || 0) + profit;
                 }
              } else if (newStatus === "Cancelled" && previousStatus !== "cancelled") {
                 if (previousStatus === "pending" || previousStatus === "processing") {
-                   updates.unpicked_balance = (profile.unpicked_balance || 0) - totalAmount;
+                   updates.unpicked_balance = Math.max(0, (profile.unpicked_balance || 0) - totalAmount);
                 } else if (previousStatus === "ongoing" || previousStatus === "shipped") {
-                   updates.pending_balance = (profile.pending_balance || 0) - totalAmount;
+                   updates.pending_balance = Math.max(0, (profile.pending_balance || 0) - totalAmount);
                    updates.balance = (profile.balance || 0) + serviceCost;
                 }
              } else if (newStatus === "Ongoing" && (previousStatus === "pending" || previousStatus === "processing")) {
-                updates.unpicked_balance = (profile.unpicked_balance || 0) - totalAmount;
+                updates.unpicked_balance = Math.max(0, (profile.unpicked_balance || 0) - totalAmount);
                 updates.pending_balance = (profile.pending_balance || 0) + totalAmount;
                 updates.balance = (profile.balance || 0) - serviceCost;
              }
@@ -278,9 +278,9 @@ export function useCancelOrder() {
           if (profile) {
             const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
             if (previousStatus === "pending" || previousStatus === "processing") {
-              updates.unpicked_balance = (profile.unpicked_balance || 0) - totalAmount;
+              updates.unpicked_balance = Math.max(0, (profile.unpicked_balance || 0) - totalAmount);
             } else if (previousStatus === "ongoing") {
-              updates.pending_balance = (profile.pending_balance || 0) - totalAmount;
+              updates.pending_balance = Math.max(0, (profile.pending_balance || 0) - totalAmount);
               updates.balance = (profile.balance || 0) + serviceCost;
             }
 

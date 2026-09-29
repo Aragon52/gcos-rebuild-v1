@@ -1,0 +1,24 @@
+{
+  "app_details": {
+    "app_name": "GCOS Reseller Portal",
+    "short_description": "Manage your online shop, orders, VIP profits and commissions on the go.",
+    "full_description": "GCOS Reseller Portal is the all-in-one mobile command center for digital store owners, e-commerce resellers, and dropshipping partners.\n\nKey Features:\n- 🚀 Zero Inventory Risk: Select verified high-demand catalog products with automated supplier fulfillment.\n- 💎 Dynamic VIP Margin Tiers: Earn up to 40% profit margins with tiered VIP progression and reward structures.\n- 📊 Real-time Analytics: Track your daily shop turnover, order states, store visits, and revenue streams live.\n- ⚡ Instant Balance & Daily Payouts: Request rapid withdrawals directly to your crypto USDT wallet or bank account.\n- 🔔 Real-Time Order Alerts: Instant push notifications whenever a new customer order or commission arrives.\n- 🛠️ Store Customization: Personalize your storefront theme, custom banner, logo, and promotional discount campaigns.\n\nJoin thousands of global merchants scaling their online stores with GlobalCart OS.",
+    "default_language": "en-US",
+    "category": "Shopping / Business",
+    "content_rating": "Everyone (PEGI 3 / ESRB Everyone)",
+    "privacy_policy_url": "https://globalcart-onlineshop.com/reseller/privacy",
+    "support_email": "support@globalcart-onlineshop.com",
+    "website_url": "https://globalcart-onlineshop.com/reseller"
+  },
+  "asset_specifications_verified": {
+    "hi_res_icon": "512x512 32-bit PNG (Included in store_listing/playstore-icon-512x512.png)",
+    "feature_graphic": "1024x500 PNG / JPEG (Included in store_listing/playstore-feature-graphic-1024x500.png)",
+    "android_launcher_mipmaps": "mdpi (48px), hdpi (72px), xhdpi (96px), xxhdpi (144px), xxxhdpi (192px)",
+    "adaptive_icon": "Foreground 432x432 & Background 432x432 (Included in android/)"
+  },
+  "trusted_web_activity": {
+    "package_name": "com.globalcart.reseller",
+    "start_url": "https://globalcart-onlineshop.com/reseller/",
+    "assetlinks_json_path": "/public/.well-known/assetlinks.json"
+  }
+}

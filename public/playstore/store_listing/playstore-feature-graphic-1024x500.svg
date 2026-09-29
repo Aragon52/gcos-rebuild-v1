@@ -1,0 +1,115 @@
+
+<svg width="1024" height="500" viewBox="0 0 1024 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fgBg" x1="0" y1="0" x2="1024" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#090D16"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+    <linearGradient id="goldText" x1="0" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="50%" stop-color="#EAB308"/>
+      <stop offset="100%" stop-color="#CA8A04"/>
+    </linearGradient>
+    <linearGradient id="greenText" x1="0" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <radialGradient id="heroGlow" cx="75%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/>
+      <stop offset="60%" stop-color="#047857" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#090D16" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="goldGlow" cx="25%" cy="30%" r="40%">
+      <stop offset="0%" stop-color="#EAB308" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#090D16" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1024" height="500" fill="url(#fgBg)"/>
+  <rect width="1024" height="500" fill="url(#heroGlow)"/>
+  <rect width="1024" height="500" fill="url(#goldGlow)"/>
+
+  <!-- High-Tech Grid & Curved Growth Chart Lines -->
+  <g opacity="0.25">
+    <line x1="0" y1="100" x2="1024" y2="100" stroke="#334155" stroke-width="1" stroke-dasharray="8 8"/>
+    <line x1="0" y1="200" x2="1024" y2="200" stroke="#334155" stroke-width="1" stroke-dasharray="8 8"/>
+    <line x1="0" y1="300" x2="1024" y2="300" stroke="#334155" stroke-width="1" stroke-dasharray="8 8"/>
+    <line x1="0" y1="400" x2="1024" y2="400" stroke="#334155" stroke-width="1" stroke-dasharray="8 8"/>
+  </g>
+
+  <!-- Glowing Trendline in Background -->
+  <path d="M 50 420 Q 250 380 450 310 T 750 180 T 1000 80" stroke="url(#greenText)" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M 50 420 Q 250 380 450 310 T 750 180 T 1000 80 L 1000 500 L 50 500 Z" fill="url(#greenText)" opacity="0.05"/>
+
+  <!-- Left Side: Brand Typography & Selling Points -->
+  <g transform="translate(64, 90)">
+    <!-- Pill Badge -->
+    <rect width="210" height="34" rx="17" fill="#1E293B" stroke="#10B981" stroke-width="1.5" stroke-opacity="0.6"/>
+    <circle cx="18" cy="17" r="5" fill="#10B981"/>
+    <text x="32" y="22" fill="#E2E8F0" font-family="system-ui, sans-serif" font-weight="700" font-size="12" letter-spacing="1.5">OFFICIAL MERCHANT APP</text>
+
+    <!-- Main Title -->
+    <text x="0" y="90" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="46" letter-spacing="-1">GlobalCart</text>
+    <text x="250" y="90" fill="url(#goldText)" font-family="system-ui, sans-serif" font-weight="900" font-size="46" letter-spacing="-1">OS</text>
+    <text x="0" y="145" fill="url(#greenText)" font-family="system-ui, sans-serif" font-weight="800" font-size="40" letter-spacing="-0.5">Reseller Portal</text>
+
+    <!-- Subtitle / Tagline -->
+    <text x="0" y="195" fill="#94A3B8" font-family="system-ui, sans-serif" font-weight="500" font-size="18">
+      Launch, automate &amp; scale your e-commerce store worldwide.
+    </text>
+
+    <!-- 3 Feature Badges -->
+    <g transform="translate(0, 235)">
+      <!-- Badge 1: 0 Inventory -->
+      <g>
+        <rect width="135" height="38" rx="10" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+        <text x="15" y="24" fill="#FDE047" font-family="system-ui, sans-serif" font-weight="700" font-size="13">⚡ 0 Inventory</text>
+      </g>
+      <!-- Badge 2: VIP Profits -->
+      <g transform="translate(145, 0)">
+        <rect width="145" height="38" rx="10" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+        <text x="15" y="24" fill="#34D399" font-family="system-ui, sans-serif" font-weight="700" font-size="13">💎 Up to 40% Margin</text>
+      </g>
+      <!-- Badge 3: Fast Payouts -->
+      <g transform="translate(300, 0)">
+        <rect width="130" height="38" rx="10" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+        <text x="15" y="24" fill="#60A5FA" font-family="system-ui, sans-serif" font-weight="700" font-size="13">🚀 Daily Payouts</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Right Side: 3D App Showcase Icon & Card Mockup -->
+  <g transform="translate(680, 70)">
+    <!-- Glow Backdrop -->
+    <circle cx="160" cy="180" r="160" fill="#10B981" opacity="0.2" filter="blur(30px)"/>
+
+    <!-- Floating Glass KPI Card Mockup -->
+    <rect x="-40" y="220" width="220" height="110" rx="18" fill="#0F172A" fill-opacity="0.95" stroke="#334155" stroke-width="1.5"/>
+    <text x="-20" y="250" fill="#94A3B8" font-family="system-ui, sans-serif" font-weight="600" font-size="12">TODAY'S TURNOVER</text>
+    <text x="-20" y="285" fill="#34D399" font-family="system-ui, sans-serif" font-weight="900" font-size="28">$18,420.50</text>
+    <text x="-20" y="312" fill="#FDE047" font-family="system-ui, sans-serif" font-weight="700" font-size="12">▲ +24.8% sales growth</text>
+
+    <!-- Central 3D Icon Graphic -->
+    <g transform="translate(60, 20) scale(0.6)">
+      <!-- Main Cart -->
+      <path d="M70 160 H125 L160 310 Q164 322 178 322 H330 Q344 322 348 310 L378 195 Q382 180 365 180 H140" 
+            stroke="url(#goldText)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="175" cy="385" r="32" fill="#0F172A" stroke="url(#goldText)" stroke-width="14"/>
+      <circle cx="175" cy="385" r="12" fill="#10B981"/>
+      <circle cx="335" cy="385" r="32" fill="#0F172A" stroke="url(#goldText)" stroke-width="14"/>
+      <circle cx="335" cy="385" r="12" fill="#10B981"/>
+
+      <!-- Store & Box -->
+      <rect x="170" y="190" width="95" height="110" rx="16" fill="#10B981"/>
+      <rect x="250" y="210" width="90" height="95" rx="14" fill="url(#goldText)"/>
+      <path d="M295 210 V305 M250 257 H340" stroke="#78350F" stroke-width="5" stroke-opacity="0.4"/>
+      
+      <!-- Big G C -->
+      <text x="210" y="130" fill="url(#goldText)" font-family="sans-serif" font-weight="900" font-size="90">G</text>
+      <text x="280" y="130" fill="url(#greenText)" font-family="sans-serif" font-weight="900" font-size="90">C</text>
+    </g>
+  </g>
+</svg>
