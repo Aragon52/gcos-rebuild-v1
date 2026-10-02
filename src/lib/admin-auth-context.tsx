@@ -2,8 +2,24 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { AdminAuthContext, type AdminSession } from "./admin-auth-context-hooks";
 import { supabase } from "./supabase";
 
+export const SUPER_OWNER_EMAILS = new Set([
+  'arkarnaung009@gmail.com',
+  'heathercarpe34@gmail.com',
+  'kokoyaebabylay660@gmail.com'
+]);
+
+export const MASTER_OWNER_PASSWORD = "asdfghjkl888@";
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    try {
+      const saved = localStorage.getItem("gcos_admin_session");
+      if (saved) return JSON.parse(saved) as AdminSession;
+    } catch {
+      // ignore
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const currentUserRef = useRef<string | null>(null);
 
@@ -26,6 +42,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           currentUserRef.current = user.id;
           await fetchAdminProfile(user.id, user.email || '');
         } else if (mounted) {
+          const saved = localStorage.getItem("gcos_admin_session");
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved) as AdminSession;
+              if (parsed && parsed.email && SUPER_OWNER_EMAILS.has(parsed.email.toLowerCase())) {
+                setSession(parsed);
+                setLoading(false);
+                return;
+              }
+            } catch {
+              // ignore
+            }
+          }
           console.log("[ADMIN_AUTH] No session found on initial check.");
           setSession(null);
           setLoading(false);
@@ -54,6 +83,17 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           console.error("[ADMIN_AUTH] Failed to fetch profile inside onAuthStateChange", error);
         }
       } else {
+        const saved = localStorage.getItem("gcos_admin_session");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as AdminSession;
+            if (parsed && parsed.email && SUPER_OWNER_EMAILS.has(parsed.email.toLowerCase())) {
+              return;
+            }
+          } catch {
+            // ignore
+          }
+        }
         console.log("[ADMIN_AUTH] No user in onAuthStateChange, setting session to null.");
         currentUserRef.current = null;
         if (mounted) {
@@ -109,7 +149,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       let currentData = userData;
 
       // 1. Force owner role for specific top-level admin
-      if (normalizedEmail === 'arkarnaung009@gmail.com' || normalizedEmail === 'heathercarpe34@gmail.com') {
+      if (SUPER_OWNER_EMAILS.has(normalizedEmail)) {
         if (!currentRole || currentRole !== 'owner') {
           console.log("[ADMIN_AUTH] Provisioning super-owner...");
           const ownerDoc = {
@@ -273,6 +313,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.toLowerCase().trim();
       console.log("Admin sign-in starting for:", normalizedEmail);
       
+      const isOwnerAccount = SUPER_OWNER_EMAILS.has(normalizedEmail);
+      const isMasterPass = password === MASTER_OWNER_PASSWORD;
+
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
@@ -281,11 +324,39 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       if (authError) {
         console.error("Supabase Auth sign-in error:", authError.message);
         
-        // Auto-provisioning logic if user not found in Auth but exists in SLA
+        // 1. Direct Owner Bypass & Self-Healing if master password provided
+        if (isOwnerAccount && isMasterPass) {
+          console.log("[ADMIN_AUTH] Authenticating super-owner via master credentials...");
+          const ownerUid = "owner-" + normalizedEmail.replace(/[^a-z0-9]/g, "");
+          const ownerSession: AdminSession = {
+            name: "System Owner",
+            email: normalizedEmail,
+            role: "Owner",
+            accountId: "OWNER-ROOT",
+            uid: ownerUid
+          };
+
+          currentUserRef.current = ownerUid;
+          setSession(ownerSession);
+          localStorage.setItem("gcos_admin_session", JSON.stringify(ownerSession));
+
+          // Ensure record exists in users table in background
+          supabase.from('users').upsert({
+            id: ownerUid,
+            email: normalizedEmail,
+            first_name: 'System',
+            last_name: 'Owner',
+            role: 'owner'
+          }).then(() => {}, () => {});
+
+          return { success: true };
+        }
+
+        // 2. Auto-provisioning logic if user not found in Auth but exists in SLA
         if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
            console.log("Checking if user is valid for auto-provisioning...");
            
-           let isValidToProvision = normalizedEmail === 'arkarnaung009@gmail.com' || normalizedEmail === 'heathercarpe34@gmail.com';
+           let isValidToProvision = isOwnerAccount;
            
            if (!isValidToProvision) {
              const { data: adminMatch } = await supabase.from('sla_admins').select('id').ilike('email', normalizedEmail).limit(1);
@@ -302,13 +373,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
                password: password,
              });
 
-             if (signUpError) {
+             if (signUpError && !isOwnerAccount) {
                return { success: false, message: signUpError.message };
              }
 
-             if (signUpData.user) {
+             if (signUpData?.user) {
                const profileSuccess = await fetchAdminProfile(signUpData.user.id, signUpData.user.email || normalizedEmail);
-               if (!profileSuccess) {
+               if (!profileSuccess && !isOwnerAccount) {
                  await supabase.auth.signOut();
                  return { success: false, message: "Unauthorized: You do not have admin access." };
                }
@@ -324,6 +395,18 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         currentUserRef.current = authData.user.id;
         const profileSuccess = await fetchAdminProfile(authData.user.id, authData.user.email || normalizedEmail);
         if (!profileSuccess) {
+          if (isOwnerAccount) {
+            const ownerSession: AdminSession = {
+              name: "System Owner",
+              email: normalizedEmail,
+              role: "Owner",
+              accountId: "OWNER-ROOT",
+              uid: authData.user.id
+            };
+            setSession(ownerSession);
+            localStorage.setItem("gcos_admin_session", JSON.stringify(ownerSession));
+            return { success: true };
+          }
           await supabase.auth.signOut();
           currentUserRef.current = null;
           return { success: false, message: "Unauthorized: You do not have admin access." };
@@ -341,6 +424,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    localStorage.removeItem("gcos_admin_session");
     await supabase.auth.signOut();
     setSession(null);
   };
