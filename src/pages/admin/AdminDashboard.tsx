@@ -15,7 +15,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { adminPath } from "@/lib/subdomain";
-import { OwnerSecurityActivityCard } from "@/components/admin/OwnerSecurityActivityCard";
+import { AdminSecurityActivityCard } from "@/components/admin/AdminSecurityActivityCard";
 import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
 
 const adPerformanceData = [
@@ -133,8 +133,8 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Security Activity - Ownership Login Patterns & Sessions */}
-      <OwnerSecurityActivityCard />
+      {/* Security Activity - Administrator Accounts Login Patterns & Sessions */}
+      <AdminSecurityActivityCard />
 
       <div className="grid gap-6 md:grid-cols-12">
         {/* Site Front Advertising - Middle Large Area */}

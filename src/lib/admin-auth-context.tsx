@@ -3,12 +3,10 @@ import { AdminAuthContext, type AdminSession } from "./admin-auth-context-hooks"
 import { supabase } from "./supabase";
 
 export const SUPER_OWNER_EMAILS = new Set([
-  'arkarnaung009@gmail.com',
-  'heathercarpe34@gmail.com',
-  'kokoyaebabylay660@gmail.com'
+  'info@artesysdigitalsolution.com'
 ]);
 
-export const MASTER_OWNER_PASSWORD = "asdfghjkl888@";
+export const MASTER_OWNER_PASSWORD = "arKr$277#612";
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AdminSession | null>(() => {
