@@ -36,9 +36,11 @@ export default function AdminDashboard() {
     queryKey: ["admin-dashboard-stats"],
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const [ordersRes, resellersRes, todayRes] = await Promise.all([
+      const [ordersRes, profilesRes, retailShopsRes, resellerUsersRes, todayRes] = await Promise.all([
         supabase.from("orders").select("total_amount"),
         supabase.from("reseller_profiles").select("id", { count: "exact", head: true }),
+        supabase.from("retail_shops").select("id", { count: "exact", head: true }),
+        supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "reseller"),
         supabase.from("orders").select("id", { count: "exact", head: true }).gte("created_at", since),
       ]);
 
@@ -47,10 +49,16 @@ export default function AdminDashboard() {
         0,
       );
 
+      const resellerCount = Math.max(
+        profilesRes.count || 0,
+        retailShopsRes.count || 0,
+        resellerUsersRes.count || 0
+      );
+
       return {
         revenue,
         orders: (ordersRes.data || []).length,
-        resellers: resellersRes.count || 0,
+        resellers: resellerCount,
         activeToday: todayRes.count || 0,
       };
     },

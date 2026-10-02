@@ -101,25 +101,35 @@ export function useUnifiedResellers() {
           staffMap.set(s.id, s);
         });
 
-        const resellers: Reseller[] = (profiles || []).map(profileData => {
-          const userData = (usersMap.get(profileData.id) || {}) as Record<string, unknown>;
-          const retailShopData = (retailShopsMap.get(profileData.id) || {}) as Record<string, unknown>;
+        const allResellerIds = new Set<string>();
+        profiles.forEach(p => p.id && allResellerIds.add(String(p.id)));
+        retailShops.forEach(s => s.id && allResellerIds.add(String(s.id)));
+        users.forEach(u => u.id && allResellerIds.add(String(u.id)));
+
+        const profilesMap = new Map();
+        profiles.forEach(p => profilesMap.set(p.id, p));
+
+        const resellers: Reseller[] = Array.from(allResellerIds).map(id => {
+          const profileData = (profilesMap.get(id) || {}) as Record<string, unknown>;
+          const userData = (usersMap.get(id) || {}) as Record<string, unknown>;
+          const retailShopData = (retailShopsMap.get(id) || {}) as Record<string, unknown>;
           
           let adminName = '';
           let staffName = '';
           
-          const memberOfAdminIdRaw = profileData.member_of_admin_id as string || '';
+          const memberOfAdminIdRaw = (profileData.member_of_admin_id as string) || (userData.member_of_admin_id as string) || '';
           let inferredAdminId = memberOfAdminIdRaw ? (adminsIdToAccountIdMap.get(memberOfAdminIdRaw) || memberOfAdminIdRaw) : '';
           
           if (memberOfAdminIdRaw && adminsNameMap.has(memberOfAdminIdRaw)) {
             adminName = adminsNameMap.get(memberOfAdminIdRaw)!;
           } 
           
-          if (profileData.referred_by_staff_id && staffMap.has(profileData.referred_by_staff_id)) {
-            const staffData = staffMap.get(profileData.referred_by_staff_id)!;
-            staffName = (staffData.username as string) || (staffData.name as string) || (profileData.referred_by_staff_id as string);
+          const referredByStaffId = (profileData.referred_by_staff_id as string) || (userData.referred_by_staff_id as string) || '';
+          if (referredByStaffId && staffMap.has(referredByStaffId)) {
+            const staffData = staffMap.get(referredByStaffId)!;
+            staffName = (staffData.username as string) || (staffData.name as string) || referredByStaffId;
             
-            const staffAdminIdRaw = staffData.created_by_admin_id as string || '';
+            const staffAdminIdRaw = (staffData.created_by_admin_id as string) || '';
             const staffAdminAccountId = staffAdminIdRaw ? (adminsIdToAccountIdMap.get(staffAdminIdRaw) || staffAdminIdRaw) : '';
             
             if (!inferredAdminId) {
@@ -133,10 +143,10 @@ export function useUnifiedResellers() {
 
           const firstNameRaw = (userData.first_name as string) || (profileData.first_name as string) || (retailShopData.first_name as string) || '';
           const lastNameRaw = (userData.last_name as string) || (profileData.last_name as string) || (retailShopData.last_name as string) || '';
-          const shopName = (profileData.shop_name as string) || (retailShopData.shop_name as string) || (userData.shop_name as string) || '';
+          const shopName = (profileData.shop_name as string) || (retailShopData.shop_name as string) || (userData.shop_name as string) || (userData.first_name as string) || 'Reseller Store';
 
-          const firstName = firstNameRaw || (shopName ? shopName.split(' ')[0] : 'Unknown');
-          const lastName = lastNameRaw || (shopName ? shopName.split(' ')[1] || '' : 'Reseller');
+          const firstName = firstNameRaw || (shopName ? shopName.split(' ')[0] : 'Reseller');
+          const lastName = lastNameRaw || (shopName ? shopName.split(' ').slice(1).join(' ') || '' : 'Partner');
 
           const referralId = (profileData.referral_code as string) || (profileData.referral_id as string) || '';
 
