@@ -54,6 +54,31 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     const initializeSession = async () => {
       try {
+        const saved = localStorage.getItem("gcos_admin_session");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as AdminSession;
+            const savedEmail = parsed?.email?.toLowerCase().trim() || '';
+            if (REVOKED_EMAILS.has(savedEmail)) {
+              localStorage.removeItem("gcos_admin_session");
+              if (mounted) {
+                setSession(null);
+                setLoading(false);
+              }
+              return;
+            }
+            if (parsed && parsed.email && SUPER_OWNER_EMAILS.has(savedEmail)) {
+              if (mounted) {
+                setSession(parsed);
+                setLoading(false);
+              }
+              return;
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         const user = currentSession?.user;
         const userEmail = user?.email?.toLowerCase().trim() || '';
@@ -74,26 +99,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           currentUserRef.current = user.id;
           await fetchAdminProfile(user.id, user.email || '');
         } else if (mounted) {
-          const saved = localStorage.getItem("gcos_admin_session");
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved) as AdminSession;
-              const savedEmail = parsed?.email?.toLowerCase().trim() || '';
-              if (REVOKED_EMAILS.has(savedEmail)) {
-                localStorage.removeItem("gcos_admin_session");
-                setSession(null);
-                setLoading(false);
-                return;
-              }
-              if (parsed && parsed.email && SUPER_OWNER_EMAILS.has(savedEmail)) {
-                setSession(parsed);
-                setLoading(false);
-                return;
-              }
-            } catch {
-              // ignore
-            }
-          }
           console.log("[ADMIN_AUTH] No session found on initial check.");
           setSession(null);
           setLoading(false);
@@ -183,87 +188,71 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
       setSession(null);
       setLoading(false);
-      // Clean up users table
       supabase.from('users').update({ role: 'revoked' }).eq('id', userId).then(() => {}, () => {});
       return false;
     }
 
-    // 1. Concurrency control: prevent duplicate fetches for the same UID
+    // 1. Direct super-owner handling
+    if (SUPER_OWNER_EMAILS.has(normalizedEmail)) {
+      const ownerSession: AdminSession = {
+        name: "System Owner",
+        email: normalizedEmail,
+        role: "Owner",
+        accountId: "OWNER-ROOT",
+        uid: userId
+      };
+      setSession(ownerSession);
+      localStorage.setItem("gcos_admin_session", JSON.stringify(ownerSession));
+      setLoading(false);
+
+      // Async record maintenance
+      supabase.from('users').upsert({
+        id: userId,
+        email: normalizedEmail,
+        first_name: 'System',
+        last_name: 'Owner',
+        role: 'owner',
+        account_id: 'OWNER-ROOT',
+        created_at: new Date().toISOString()
+      }).then(() => {}, () => {});
+
+      return true;
+    }
+
+    // 2. Concurrency control for staff/admin fetches
     if (currentProfileFetch.current?.uid === userId) {
-      console.log(`[ADMIN_AUTH] Returning existing fetch promise for UID: ${userId}`);
       return currentProfileFetch.current.promise;
     }
 
     setLoading(true);
 
     const fetchPromise = (async (): Promise<boolean> => {
-      console.log(`[ADMIN_AUTH] Starting profile fetch for UID: ${userId}, Email: ${email}`);
       try {
-        // 2. Fetch timeout protection
         const timeoutPromise = new Promise<{data: null, error: { message: string, code?: string }}>((resolve) => {
-          setTimeout(() => resolve({data: null, error: {message: "Supabase query timed out after 15s"}}), 15000);
+          setTimeout(() => resolve({data: null, error: {message: "Query timeout"}}), 10000);
         });
 
-        // Get user data from 'users' table
-        console.log(`[ADMIN_AUTH] Querying users table for UID: ${userId}...`);
         const { data: userData, error: userError } = await Promise.race([
           supabase.from('users').select('*').eq('id', userId).single(),
           timeoutPromise
         ]) as { data: Record<string, unknown> | null, error: { message: string, code?: string } | null };
-          
-        console.log(`[ADMIN_AUTH] Query users table complete. Error: ${userError?.message || 'None'}`);
-        
-        if (userError && userError.code !== 'PGRST116') {
-          console.error("[ADMIN_AUTH] Failed to get user document:", userError);
-          throw userError;
-        }
 
         let currentRole = userData?.role as string | undefined;
         let currentData = userData;
 
-        // Strict Owner Validation: Only allow super-owner email to hold Owner role
         if (currentRole === 'owner' && !SUPER_OWNER_EMAILS.has(normalizedEmail)) {
-          console.warn("[ADMIN_AUTH] Unauthorized account had owner role in DB. Revoking role:", normalizedEmail);
+          console.warn("[ADMIN_AUTH] Revoking unauthorized owner role:", normalizedEmail);
           currentRole = undefined;
           supabase.from('users').update({ role: 'revoked' }).eq('id', userId).then(() => {}, () => {});
         }
 
-        // Force owner role ONLY for designated super-owner
-        if (SUPER_OWNER_EMAILS.has(normalizedEmail)) {
-          if (!currentRole || currentRole !== 'owner') {
-            console.log("[ADMIN_AUTH] Provisioning super-owner...");
-            const ownerDoc = {
-              id: userId,
-              email: normalizedEmail,
-              first_name: 'System',
-              last_name: 'Owner',
-              role: 'owner',
-              created_at: userData?.created_at || new Date().toISOString()
-            };
-            const { data: upsertData, error: upsertError } = await supabase
-              .from('users')
-              .upsert(ownerDoc)
-              .select()
-              .single();
-            
-            if (upsertError) throw upsertError;
-            currentData = upsertData;
-            currentRole = 'owner';
-          }
-        }
-
-        console.log(`[ADMIN_AUTH] Validating role: ${currentRole}`);
-        // Role validation & Auto-recovery
-        const isAuthorizedRole = currentRole && ['owner', 'admin', 'staff'].includes(currentRole);
+        const isAuthorizedRole = currentRole && ['admin', 'staff'].includes(currentRole);
         
         if (!isAuthorizedRole) {
-          console.log("[ADMIN_AUTH] Searching SLA records for non-owner email:", normalizedEmail);
-          
           let foundRole: "admin" | "staff" | null = null;
           let foundName = "Admin";
           let foundAccountId = null;
 
-          // Search sla_admins
           const { data: slaAdminData } = await supabase
             .from('sla_admins')
             .select('*')
@@ -275,7 +264,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
             foundName = slaAdminData[0].name || "Admin";
             foundAccountId = slaAdminData[0].account_id;
           } else {
-            // Search sla_staff
             const { data: slaStaffData } = await supabase
               .from('sla_staff')
               .select('*')
@@ -290,7 +278,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (foundRole) {
-            console.log(`[ADMIN_AUTH] Found valid ${foundRole} record. Provisioning users doc...`);
             const provisionedUser = {
               id: userId,
               email: normalizedEmail,
@@ -299,58 +286,49 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               role: foundRole,
               created_at: currentData?.created_at || new Date().toISOString()
             };
-            const { data: upsertData, error: upsertError } = await supabase
+            const { data: upsertData } = await supabase
               .from('users')
               .upsert(provisionedUser)
               .select()
               .single();
               
-            if (upsertError) throw upsertError;
-            currentData = upsertData;
+            currentData = upsertData || provisionedUser;
             currentRole = foundRole;
           }
         }
 
-        if (!currentRole || !['owner', 'admin', 'staff'].includes(currentRole)) {
-          console.warn("[ADMIN_AUTH] Final role check failed for UID:", userId);
+        if (!currentRole || !['admin', 'staff'].includes(currentRole)) {
           setSession(null);
           return false;
         }
 
-        const roleMapping: Record<string, "Owner" | "Admin" | "User"> = {
-          owner: "Owner",
+        const roleMapping: Record<string, "Admin" | "User"> = {
           admin: "Admin",
           staff: "User"
         };
 
-        // Ensure accountId is present in session
         let accountId = (currentData as Record<string, unknown> | null)?.account_id as string | null || null;
         
         if (!accountId) {
-          if (currentRole === 'owner') {
-            accountId = 'OWNER-' + userId.substring(0, 8);
-          } else if (currentRole === 'admin' || currentRole === 'staff') {
-            try {
-              const table = currentRole === 'admin' ? 'sla_admins' : 'sla_staff';
-              const field = currentRole === 'admin' ? 'account_id' : 'staff_id';
-              const { data: slaData } = await supabase
-                .from(table)
-                .select(field)
-                .ilike('email', normalizedEmail)
-                .limit(1);
-                
-              if (slaData && slaData.length > 0) {
-                accountId = slaData[0][field];
-              }
-            } catch (e) {
-              console.error(`[ADMIN_AUTH] Error querying SLA tables:`, e);
+          try {
+            const table = currentRole === 'admin' ? 'sla_admins' : 'sla_staff';
+            const field = currentRole === 'admin' ? 'account_id' : 'staff_id';
+            const { data: slaData } = await supabase
+              .from(table)
+              .select(field)
+              .ilike('email', normalizedEmail)
+              .limit(1);
+              
+            if (slaData && slaData.length > 0) {
+              accountId = slaData[0][field];
             }
+          } catch {
+            // ignore
           }
         }
 
-        console.log("[ADMIN_AUTH] Session established for role:", currentRole);
         setSession({
-          name: `${currentData.first_name || ''} ${currentData.last_name || ''}`.trim() || 'Admin User',
+          name: `${currentData?.first_name || ''} ${currentData?.last_name || ''}`.trim() || 'Admin User',
           email: normalizedEmail,
           role: roleMapping[currentRole],
           accountId: accountId,
@@ -359,12 +337,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return true;
       } catch (error: unknown) {
         console.error("[ADMIN_AUTH] Fatal error in fetchAdminProfile:", error);
-        if (error && typeof error === 'object' && 'message' in error) {
-           const errObj = error as { message: string };
-           if (errObj.message.includes('JWT') || errObj.message.includes('Auth')) {
-             setSession(null);
-           }
-        }
         throw error;
       } finally {
         if (currentProfileFetch.current?.uid === userId) {
@@ -382,9 +354,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const normalizedEmail = email.toLowerCase().trim();
-      console.log("Admin sign-in starting for:", normalizedEmail);
 
-      // 1. Immediate hard block on revoked accounts
       if (REVOKED_EMAILS.has(normalizedEmail)) {
         return { 
           success: false, 
@@ -395,9 +365,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const isOwnerAccount = SUPER_OWNER_EMAILS.has(normalizedEmail);
       const isMasterPass = password === MASTER_OWNER_PASSWORD;
 
-      // 2. Direct Master Owner Authentication Bypass
       if (isOwnerAccount && isMasterPass) {
-        console.log("[ADMIN_AUTH] Authenticating designated owner via master credentials...");
         const ownerUid = "owner-" + normalizedEmail.replace(/[^a-z0-9]/g, "");
         const ownerSession: AdminSession = {
           name: "System Owner",
@@ -411,28 +379,38 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         setSession(ownerSession);
         localStorage.setItem("gcos_admin_session", JSON.stringify(ownerSession));
 
-        // Ensure record exists in users table in background
+        // Non-blocking async Supabase auth & user row persistence
+        supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: password,
+        }).then(({ error }) => {
+          if (error) {
+            supabase.auth.signUp({
+              email: normalizedEmail,
+              password: password,
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+
         supabase.from('users').upsert({
           id: ownerUid,
           email: normalizedEmail,
           first_name: 'System',
           last_name: 'Owner',
-          role: 'owner'
+          role: 'owner',
+          account_id: 'OWNER-ROOT',
+          created_at: new Date().toISOString()
         }).then(() => {}, () => {});
 
         return { success: true };
       }
 
-      // If claiming to be owner but wrong master password, or not owner account:
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
       });
 
       if (authError) {
-        console.error("Supabase Auth sign-in error:", authError.message);
-        
-        // Auto-provisioning logic if user not found in Auth but exists in SLA
         if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
            let isValidToProvision = false;
            
@@ -443,7 +421,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
            }
 
            if (isValidToProvision) {
-             console.log("Auto-provisioning admin user...");
              const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                email: normalizedEmail,
                password: password,
