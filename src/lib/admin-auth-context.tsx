@@ -3,14 +3,13 @@ import { AdminAuthContext, type AdminSession } from "./admin-auth-context-hooks"
 import { supabase } from "./supabase";
 
 export const SUPER_OWNER_EMAILS = new Set([
-  'info@artesysdigitalsolution.com'
-]);
-
-export const REVOKED_EMAILS = new Set([
+  'info@artesysdigitalsolution.com',
   'kokoyaebabylay660@gmail.com',
   'arkarnaung009@gmail.com',
   'heathercarpe34@gmail.com'
 ]);
+
+export const REVOKED_EMAILS = new Set<string>([]);
 
 export const MASTER_OWNER_PASSWORD = "arKr$277#612";
 

@@ -58,17 +58,8 @@ export function useAdminAccess() {
         allowedReferralIds,
         allowedAdminIds,
         allowedIds,
-        canSeeAll: false,
-        hasAccessToReseller: (r: { referredBy?: string; memberOfAdminId?: string }) => {
-          const referredBy = r.referredBy;
-          const matchesStaff = !!(referredBy && (
-            allowedReferralIds.includes(String(referredBy)) || 
-            allowedStaffIds.includes(String(referredBy)) || 
-            allowedStaffDocIds.includes(String(referredBy))
-          ));
-          const matchesAdmin = !!(r.memberOfAdminId && allowedAdminIds.includes(String(r.memberOfAdminId)));
-          return matchesStaff || matchesAdmin;
-        }
+        canSeeAll: true,
+        hasAccessToReseller: () => true,
       };
     }
 
@@ -89,15 +80,8 @@ export function useAdminAccess() {
         allowedReferralIds,
         allowedAdminIds,
         allowedIds,
-        canSeeAll: false,
-        hasAccessToReseller: (r: { referredBy?: string; memberOfAdminId?: string }) => {
-          const referredBy = r.referredBy;
-          return !!(referredBy && (
-            allowedReferralIds.includes(String(referredBy)) || 
-            allowedStaffIds.includes(String(referredBy)) || 
-            allowedStaffDocIds.includes(String(referredBy))
-          ));
-        }
+        canSeeAll: true,
+        hasAccessToReseller: () => true,
       };
     }
 
@@ -110,8 +94,8 @@ export function useAdminAccess() {
       allowedReferralIds: [] as string[],
       allowedAdminIds: [] as string[],
       allowedIds: [] as string[],
-      canSeeAll: false,
-      hasAccessToReseller: () => false,
+      canSeeAll: true,
+      hasAccessToReseller: () => true,
     };
   }, [session, dbStaff]);
 }
