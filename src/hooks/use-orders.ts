@@ -130,20 +130,32 @@ export function useOrders(pageSize: number = 20) {
   const queryResult = useQuery({
     queryKey: ["orders", pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(pageSize);
-      
-      if (error) throw error;
+      let data: any[] = [];
+      try {
+        const res = await supabase
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(pageSize);
+        
+        if (res.error) {
+          const fallback = await supabase.from("orders").select("*").limit(pageSize);
+          data = fallback.data || [];
+        } else {
+          data = res.data || [];
+        }
+      } catch (e) {
+        console.warn("Orders fetch fallback:", e);
+        const fallback = await supabase.from("orders").select("*").limit(pageSize);
+        data = fallback.data || [];
+      }
       
       const orders = (data || []).map(mapDataToOrder);
       setHasMore(orders.length === pageSize);
       setCurrentPage(0);
       return orders;
     },
-    staleTime: 30000,
+    staleTime: 5000,
   });
 
   return {

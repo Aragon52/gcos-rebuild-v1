@@ -68,14 +68,19 @@ export function useDepositRequests() {
     queryKey: ["deposit-requests"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from("deposit_requests")
-          .select("*")
-          .order("createdAt", { ascending: false });
+          .select("*");
         
         if (error) throw error;
         
-        return (data || []).map(item => {
+        const sorted = (data || []).sort((a: any, b: any) => {
+          const tA = new Date(a.createdAt || a.created_at || 0).getTime();
+          const tB = new Date(b.createdAt || b.created_at || 0).getTime();
+          return tB - tA;
+        });
+
+        return sorted.map((item: any) => {
           let method = item.method;
           if (!method) {
             const rem = (item.remark || "").toLowerCase();
@@ -91,7 +96,7 @@ export function useDepositRequests() {
             ...item,
             method,
             proofImage: item.screenshot || item.proofImage || "",
-            createdAt: item.createdAt || item.created_at
+            createdAt: item.createdAt || item.created_at || new Date().toISOString()
           };
         }) as DepositRequest[];
       } catch (error) {
@@ -99,7 +104,7 @@ export function useDepositRequests() {
         return [];
       }
     },
-    staleTime: 30000,
+    staleTime: 5000,
   });
 }
 
@@ -125,15 +130,20 @@ export function useWithdrawalRequests() {
       try {
         const { data, error } = await supabase
           .from("withdrawal_requests")
-          .select("*")
-          .order("createdAt", { ascending: false });
+          .select("*");
         
         if (error) throw error;
         
-        return (data || []).map(item => {
+        const sorted = (data || []).sort((a: any, b: any) => {
+          const tA = new Date(a.createdAt || a.created_at || 0).getTime();
+          const tB = new Date(b.createdAt || b.created_at || 0).getTime();
+          return tB - tA;
+        });
+
+        return sorted.map((item: any) => {
           let parsed: Record<string, unknown> | undefined;
           try {
-            parsed = item.account_info ? JSON.parse(item.account_info) : undefined;
+            parsed = item.account_info ? (typeof item.account_info === 'string' ? JSON.parse(item.account_info) : item.account_info) : undefined;
           } catch {
             parsed = undefined;
           }
@@ -141,7 +151,7 @@ export function useWithdrawalRequests() {
             ...item,
             bankInfo: parsed,
             remark: item.remark ?? (parsed?.rejectionRemark as string | undefined),
-            createdAt: item.createdAt || item.created_at,
+            createdAt: item.createdAt || item.created_at || new Date().toISOString(),
           };
         }) as WithdrawalRequest[];
       } catch (error) {
@@ -149,7 +159,7 @@ export function useWithdrawalRequests() {
         return [];
       }
     },
-    staleTime: 30000,
+    staleTime: 5000,
   });
 }
 
