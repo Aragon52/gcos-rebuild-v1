@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useAdminAccess, ADMIN_UUID_TO_ACCOUNT } from "@/hooks/use-admin-access";
+import { useAdminAccess } from "@/hooks/use-admin-access";
 import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
 import { useUnifiedResellers } from "@/lib/unified-hooks";
 import { supabase } from "@/lib/supabase";
@@ -37,11 +37,10 @@ export default function ARSDepositPage() {
   const { session } = useAdminAuth();
   const { toast } = useToast();
   const resellers = useUnifiedResellers();
-  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
+  const { canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds } = useAdminAccess();
   const { data: requests = [], isLoading, isError, error, refetch } = useDepositRequests();
   const { updateDepositStatus } = useFinancialMutations();
 
-  const [adminTeamFilter, setAdminTeamFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -122,30 +121,21 @@ export default function ARSDepositPage() {
   /* ─── Filtering ─── */
   const filtered = useMemo(() => {
     let list = requests.filter((r) => {
-      const reseller = resellers.find(res => 
-        res.id === r.resellerDocId || 
-        res.id === r.resellerId || 
-        String(res.resellerId) === r.resellerId || 
-        res.email === r.resellerId
-      );
+      if (canSeeAll) return true;
+      
+      const reseller = resellers.find(res => res.id === r.resellerDocId);
+      
+      const referralId = r.referralId || reseller?.referralId;
+      const memberOfAdminId = r.memberOfAdminId || reseller?.memberOfAdminId;
+      const referredBy = reseller?.referredBy;
 
-      // 1. Role-based inheritance access: Non-owner admins/staff only see their allowed requests
-      if (!canSeeAll) {
-        const hasAccess = (reseller && hasAccessToReseller(reseller)) || hasAccessToReseller(r);
-        if (!hasAccess) return false;
+      if ((referralId && allowedReferralIds.includes(referralId)) ||
+          (memberOfAdminId && allowedAdminIds.includes(memberOfAdminId)) ||
+          (referredBy && (allowedStaffIds.includes(String(referredBy)) || allowedStaffDocIds.includes(String(referredBy))))) {
+        return true;
       }
-
-      // 2. Admin Team dropdown filter
-      if (adminTeamFilter !== "all") {
-        const rawAdmin = `${r.memberOfAdminId || ""} ${r.adminId || ""} ${reseller?.memberOfAdminId || ""} ${reseller?.adminMember || ""}`.toUpperCase();
-        const mappedAdmin = (ADMIN_UUID_TO_ACCOUNT[r.memberOfAdminId || ""] || ADMIN_UUID_TO_ACCOUNT[reseller?.memberOfAdminId || ""] || "").toUpperCase();
-        const target = adminTeamFilter.toUpperCase();
-        if (!rawAdmin.includes(target) && !mappedAdmin.includes(target)) {
-          return false;
-        }
-      }
-
-      return true;
+      
+      return false;
     });
 
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
@@ -153,29 +143,23 @@ export default function ARSDepositPage() {
       const q = search.toLowerCase();
       list = list.filter(
         (r) => {
-          const reseller = resellers.find(res => 
-            res.id === r.resellerDocId || 
-            res.id === r.resellerId || 
-            String(res.resellerId) === r.resellerId || 
-            res.email === r.resellerId
-          );
+          const reseller = resellers.find(res => res.id === r.resellerDocId);
           return (r.resellerId?.toLowerCase().includes(q) || false) ||
                  (r.resellerName?.toLowerCase().includes(q) || false) ||
                  (r.referralId?.toLowerCase().includes(q) || false) ||
                  (r.staffId?.toLowerCase().includes(q) || false) ||
                  (r.method?.toLowerCase().includes(q) || false) ||
                  (r.remark?.toLowerCase().includes(q) || false) ||
-                 r.amount?.toString().includes(q) ||
+                 r.amount.toString().includes(q) ||
                  (reseller && (
                    (reseller.shopName?.toLowerCase().includes(q) || false) ||
-                   (reseller.name?.toLowerCase().includes(q) || false) ||
                    (reseller.resellerId?.toString().includes(q) || false)
                  ));
         }
       );
     }
     return list;
-  }, [requests, search, statusFilter, adminTeamFilter, canSeeAll, hasAccessToReseller, resellers]);
+  }, [requests, search, statusFilter, canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds, resellers]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

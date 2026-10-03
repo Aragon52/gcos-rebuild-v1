@@ -117,8 +117,31 @@ function transformNavGroups(groups: NavGroup[]): NavGroup[] {
   }));
 }
 
-function filterByRole(groups: NavGroup[], _role: SLARole): NavGroup[] {
-  return groups;
+function filterByRole(groups: NavGroup[], role: SLARole): NavGroup[] {
+  if (role === "Owner") return groups;
+
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => {
+          if (item.children) {
+            const filteredChildren = item.children.filter((c) => {
+              const canonical = c.url.replace(adminPath(""), "") || c.url;
+              return isPathAllowed(role, canonical);
+            });
+            if (filteredChildren.length === 0) return null;
+            return { ...item, children: filteredChildren };
+          }
+          if (item.url) {
+            const origItem = canonicalNavGroups.flatMap(g => g.items).find(i => i.url && adminPath(i.url) === item.url);
+            if (origItem?.url && !isPathAllowed(role, origItem.url)) return null;
+          }
+          return item;
+        })
+        .filter(Boolean) as NavItem[],
+    }))
+    .filter((g) => g.items.length > 0);
 }
 
 export function AppSidebar() {

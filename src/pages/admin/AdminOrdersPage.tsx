@@ -39,7 +39,7 @@ export default function AdminOrdersPage() {
   const resellers = useUnifiedResellers();
   const cancelOrderMutation = useCancelOrder();
   const updateStatusMutation = useUpdateOrderStatus();
-  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
+  const { canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds } = useAdminAccess();
   const { logActivity } = useAdminLogger();
   const [search, setSearch] = useState("");
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
@@ -62,28 +62,26 @@ export default function AdminOrdersPage() {
     let list = orders || [];
     
     // Determine allowed reseller IDs
+    const allowedResellerIds = new Set<string>();
     if (!canSeeAll) {
-      const allowedResellerIds = new Set<string>();
-      const allowedResellers = resellers.filter(r => hasAccessToReseller(r));
+      const allowedResellers = resellers.filter(r => {
+        const referredBy = r.referredBy;
+        const memberOfAdminId = r.memberOfAdminId;
+        return (referredBy && (
+          allowedReferralIds.includes(String(referredBy)) || 
+          allowedStaffIds.includes(String(referredBy)) || 
+          allowedStaffDocIds.includes(String(referredBy))
+        )) || (memberOfAdminId && allowedAdminIds.includes(memberOfAdminId));
+      });
+      // We store both the raw ID and the formatted GRS ID to be safe
       allowedResellers.forEach(r => {
         allowedResellerIds.add(String(r.id));
         allowedResellerIds.add(`GRS${r.id}`);
-        if (r.resellerId) {
-          allowedResellerIds.add(`GRS${r.resellerId}`);
-          allowedResellerIds.add(String(r.resellerId));
-        }
+        allowedResellerIds.add(`GRS${r.resellerId}`);
+        allowedResellerIds.add(String(r.resellerId));
       });
       
-      list = list.filter((o) => {
-        const matched = resellers.find(r => 
-          r.id === o.resellerId || 
-          String(r.resellerId) === o.resellerId || 
-          `GRS${r.resellerId}` === o.resellerId ||
-          `GRS${r.id}` === o.resellerId
-        );
-        if (matched && hasAccessToReseller(matched)) return true;
-        return allowedResellerIds.has(String(o.resellerId));
-      });
+      list = list.filter((o) => allowedResellerIds.has(String(o.resellerId)));
     }
 
     // Enrich with reseller data for searching
@@ -114,7 +112,7 @@ export default function AdminOrdersPage() {
       );
     }
     return enriched;
-  }, [orders, resellers, canSeeAll, hasAccessToReseller, search]);
+  }, [orders, resellers, canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds, search]);
 
   const getStatusVariant = (status: Order["status"]) => {
     switch (status) {

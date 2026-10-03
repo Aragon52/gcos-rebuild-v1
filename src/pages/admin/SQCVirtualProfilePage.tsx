@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useProducts } from "@/lib/products-context-hooks";
 import { useUnifiedResellers } from "@/lib/unified-hooks";
-import { useAdminAccess } from "@/hooks/use-admin-access";
 import { STATIC_VIRTUAL_PROFILES } from "@/data/virtualProfiles";
 import { LEVEL_PROFIT_MAP } from "@/lib/reseller-context-hooks";
 import {
@@ -166,30 +165,9 @@ export default function SQCVirtualProfilePage() {
   const { products } = useProducts();
   const scrollRef = useRef<HTMLDivElement>(null);
   const allResellers = useUnifiedResellers();
-  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
-
-  const allowedResellerIds = useMemo(() => {
-    if (canSeeAll) return null;
-    const set = new Set<string>();
-    allResellers.filter(r => hasAccessToReseller(r)).forEach(r => {
-      set.add(String(r.id));
-      if (r.resellerId) {
-        set.add(String(r.resellerId));
-        set.add(`GRS${r.resellerId}`);
-      }
-    });
-    return set;
-  }, [allResellers, canSeeAll, hasAccessToReseller]);
 
   const enrichedSessions = useMemo(() => {
-    const list = sessions.filter(s => {
-      if (!allowedResellerIds) return true;
-      const reseller = allResellers.find(r => r.id === s.reseller_id || String(r.resellerId) === s.reseller_id);
-      if (reseller && hasAccessToReseller(reseller)) return true;
-      return allowedResellerIds.has(String(s.reseller_id));
-    });
-
-    return list.map(s => {
+    return sessions.map(s => {
       const reseller = allResellers.find(r => r.id === s.reseller_id);
       return {
         ...s,
@@ -198,7 +176,7 @@ export default function SQCVirtualProfilePage() {
         full_name: reseller ? `${reseller.firstName} ${reseller.lastName}` : ""
       };
     });
-  }, [sessions, allResellers, allowedResellerIds, hasAccessToReseller]);
+  }, [sessions, allResellers]);
 
   // Generate Order state
   const [orderSheetOpen, setOrderSheetOpen] = useState(false);
@@ -327,22 +305,16 @@ export default function SQCVirtualProfilePage() {
   });
 
   // Reseller profiles from sessions
-  const resellerProfiles = sessions
-    .filter((s) => {
-      if (!allowedResellerIds) return true;
-      const reseller = allResellers.find(r => r.id === s.reseller_id || String(r.resellerId) === s.reseller_id);
-      if (reseller && hasAccessToReseller(reseller)) return true;
-      return allowedResellerIds.has(String(s.reseller_id));
-    })
-    .map((s) => ({
-      id: s.id,
-      reseller_id: s.reseller_id,
-      reseller_name: s.reseller_name,
-      reseller_avatar: s.reseller_avatar,
-      is_online: s.is_online,
-    }));
+  const resellerProfiles = sessions.map((s) => ({
+    id: s.id,
+    reseller_id: s.reseller_id,
+    reseller_name: s.reseller_name,
+    reseller_avatar: s.reseller_avatar,
+    is_online: s.is_online,
+  }));
 
   const filteredResellers = resellerProfiles.filter((r) => {
+    if (r.reseller_name === "Ahmad Fauzi" || r.reseller_name === "Maria Santos") return false;
     if (!resellerSearch) return true;
     const q = resellerSearch.toLowerCase();
     return r.reseller_name.toLowerCase().includes(q) || r.reseller_id.toLowerCase().includes(q);

@@ -15,13 +15,17 @@ import {
 
 export default function AdminCustomersPage() {
   const { data: customers, isLoading } = useCustomers();
-  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
+  const { canSeeAll, allowedReferralIds, allowedStaffIds, allowedAdminIds, allowedStaffDocIds } = useAdminAccess();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
     let list = customers || [];
     if (!canSeeAll) {
-      list = list.filter((c) => hasAccessToReseller(c));
+      list = list.filter((c) => 
+        (c.referralId && allowedReferralIds.includes(c.referralId)) ||
+        (c.referredBy && (allowedStaffIds.includes(c.referredBy) || allowedStaffDocIds.includes(c.referredBy))) ||
+        (c.memberOfAdminId && allowedAdminIds.includes(c.memberOfAdminId))
+      );
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -34,7 +38,7 @@ export default function AdminCustomersPage() {
       );
     }
     return list;
-  }, [customers, canSeeAll, hasAccessToReseller, search]);
+  }, [customers, canSeeAll, allowedReferralIds, allowedStaffIds, allowedAdminIds, allowedStaffDocIds, search]);
 
   const getStatusVariant = (status: Customer["status"]) => {
     switch (status) {

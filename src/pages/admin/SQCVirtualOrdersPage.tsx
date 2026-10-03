@@ -82,7 +82,7 @@ const orderCounter = 1000;
 
 export default function SQCVirtualOrdersPage() {
   const { session } = useAdminAuth();
-  const { isOwner, isAdmin, isStaff, allowedAdminIds, allowedStaffIds, allowedReferralIds, allowedStaffDocIds, canSeeAll, hasAccessToReseller } = useAdminAccess();
+  const { isOwner, isAdmin, isStaff, allowedAdminIds, allowedStaffIds, allowedReferralIds, allowedStaffDocIds, canSeeAll } = useAdminAccess();
   const resellers = useUnifiedResellers();
   const [profiles, setProfiles] = useState<VirtualProfile[]>(STATIC_VIRTUAL_PROFILES);
   const [realUsers, setRealUsers] = useState<Record<string, unknown>[]>([]);
@@ -226,26 +226,28 @@ export default function SQCVirtualOrdersPage() {
   const filteredOrders = useMemo(() => {
     let list = orders || [];
 
+    const allowedResellerIds = new Set<string>();
     if (!canSeeAll) {
-      const allowedResellerIds = new Set<string>();
-      const allowedResellers = resellers.filter(r => hasAccessToReseller(r));
+      const allowedResellers = resellers.filter(r => {
+        const referredBy = r.referredBy;
+        const memberOfAdminId = r.memberOfAdminId;
+        return (referredBy && (
+          allowedReferralIds.includes(String(referredBy)) || 
+          allowedStaffIds.includes(String(referredBy)) || 
+          allowedStaffDocIds.includes(String(referredBy))
+        )) || (memberOfAdminId && allowedAdminIds.includes(memberOfAdminId));
+      });
       allowedResellers.forEach(r => {
         allowedResellerIds.add(String(r.id));
         allowedResellerIds.add(`GRS${r.id}`);
-        if (r.resellerId) {
-          allowedResellerIds.add(`GRS${r.resellerId}`);
-          allowedResellerIds.add(String(r.resellerId));
-        }
+        allowedResellerIds.add(`GRS${r.resellerId}`);
+        allowedResellerIds.add(String(r.resellerId));
       });
       
-      list = list.filter((o) => {
-        const reseller = resellers.find(r => r.id === o.resellerId || String(r.resellerId) === o.resellerId || `GRS${r.resellerId}` === o.resellerId);
-        if (reseller && hasAccessToReseller(reseller)) return true;
-        return allowedResellerIds.has(String(o.resellerId));
-      });
+      list = list.filter((o) => allowedResellerIds.has(String(o.resellerId)));
     }
     return list;
-  }, [orders, canSeeAll, resellers, hasAccessToReseller]);
+  }, [orders, canSeeAll, resellers, allowedReferralIds, allowedStaffIds, allowedStaffDocIds, allowedAdminIds]);
 
   useEffect(() => { fetchProfiles(); fetchResellerSessions(); fetchOrders(); }, [fetchProfiles, fetchResellerSessions, fetchOrders]);
 
@@ -483,11 +485,11 @@ export default function SQCVirtualOrdersPage() {
     });
 
     if (!canSeeAll) {
-      enrichedList = enrichedList.filter(s => {
-        const profile = resellers.find(r => r.id === s.reseller_id || String(r.resellerId) === s.reseller_id);
-        if (profile) return hasAccessToReseller(profile);
-        return hasAccessToReseller(s);
-      });
+      enrichedList = enrichedList.filter(s => 
+        (s.referredBy && (allowedStaffIds.includes(String(s.referredBy)) || allowedStaffDocIds.includes(String(s.referredBy)))) ||
+        (s.referralId && allowedReferralIds.includes(String(s.referralId))) ||
+        (s.memberOfAdminId && allowedAdminIds.includes(String(s.memberOfAdminId)))
+      );
     }
 
     if (resellerSearch.trim()) {
@@ -501,7 +503,7 @@ export default function SQCVirtualOrdersPage() {
       );
     }
     return enrichedList;
-  }, [resellerSessions, resellerSearch, resellers, canSeeAll, hasAccessToReseller]);
+  }, [resellerSessions, resellerSearch, resellers, canSeeAll, allowedReferralIds, allowedStaffIds, allowedStaffDocIds, allowedAdminIds]);
 
   const filteredProfiles = profiles.filter(
     (p) =>

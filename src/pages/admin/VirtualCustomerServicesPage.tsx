@@ -67,22 +67,15 @@ export default function VirtualCustomerServicesPage() {
     if (resellerSearch.trim()) {
       const q = resellerSearch.toLowerCase();
       list = list.filter(r => 
-        r.firstName?.toLowerCase().includes(q) || 
-        r.lastName?.toLowerCase().includes(q) || 
-        r.shopName?.toLowerCase().includes(q) ||
-        r.id?.toLowerCase().includes(q) ||
-        r.resellerId?.toString().includes(q)
+        r.firstName.toLowerCase().includes(q) || 
+        r.lastName.toLowerCase().includes(q) || 
+        r.shopName.toLowerCase().includes(q) ||
+        r.id.toLowerCase().includes(q) ||
+        r.resellerId.toString().includes(q)
       );
     }
     return list;
   }, [resellers, canSeeAll, hasAccessToReseller, resellerSearch]);
-
-  // Auto-select first available reseller
-  React.useEffect(() => {
-    if (!selectedResellerId && filteredResellers.length > 0) {
-      setSelectedResellerId(filteredResellers[0].id);
-    }
-  }, [selectedResellerId, filteredResellers]);
 
   const selectedReseller = React.useMemo(() => {
     const found = filteredResellers.find(r => r.id === selectedResellerId);
@@ -93,7 +86,7 @@ export default function VirtualCustomerServicesPage() {
     if (selectedResellerId && lastValidReseller.current?.id === selectedResellerId) {
       return lastValidReseller.current;
     }
-    return filteredResellers[0] || null;
+    return null;
   }, [filteredResellers, selectedResellerId]);
 
   const [onlineStatus, setOnlineStatus] = useState<Record<string, boolean>>({});

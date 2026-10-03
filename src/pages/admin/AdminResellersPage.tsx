@@ -102,11 +102,10 @@ export default function AdminResellersPage() {
       const q = search.toLowerCase();
       list = list.filter(
         (r) =>
-          r.firstName?.toLowerCase().includes(q) ||
-          r.lastName?.toLowerCase().includes(q) ||
-          r.name?.toLowerCase().includes(q) ||
-          r.id?.toLowerCase().includes(q) ||
-          r.shopName?.toLowerCase().includes(q) ||
+          r.firstName.toLowerCase().includes(q) ||
+          r.lastName.toLowerCase().includes(q) ||
+          r.id.toLowerCase().includes(q) ||
+          r.shopName.toLowerCase().includes(q) ||
           r.resellerId?.toString().includes(q)
       );
     }

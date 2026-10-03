@@ -15,8 +15,6 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { adminPath } from "@/lib/subdomain";
-import { AdminSecurityActivityCard } from "@/components/admin/AdminSecurityActivityCard";
-import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
 
 const adPerformanceData = [
   { name: "Mon", clicks: 400, views: 2400 },
@@ -36,11 +34,9 @@ export default function AdminDashboard() {
     queryKey: ["admin-dashboard-stats"],
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const [ordersRes, profilesRes, retailShopsRes, resellerUsersRes, todayRes] = await Promise.all([
+      const [ordersRes, resellersRes, todayRes] = await Promise.all([
         supabase.from("orders").select("total_amount"),
         supabase.from("reseller_profiles").select("id", { count: "exact", head: true }),
-        supabase.from("retail_shops").select("id", { count: "exact", head: true }),
-        supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "reseller"),
         supabase.from("orders").select("id", { count: "exact", head: true }).gte("created_at", since),
       ]);
 
@@ -49,16 +45,10 @@ export default function AdminDashboard() {
         0,
       );
 
-      const resellerCount = Math.max(
-        profilesRes.count || 0,
-        retailShopsRes.count || 0,
-        resellerUsersRes.count || 0
-      );
-
       return {
         revenue,
         orders: (ordersRes.data || []).length,
-        resellers: resellerCount,
+        resellers: resellersRes.count || 0,
         activeToday: todayRes.count || 0,
       };
     },
@@ -140,9 +130,6 @@ export default function AdminDashboard() {
           />
         ))}
       </div>
-
-      {/* Security Activity - Administrator Accounts Login Patterns & Sessions */}
-      <AdminSecurityActivityCard />
 
       <div className="grid gap-6 md:grid-cols-12">
         {/* Site Front Advertising - Middle Large Area */}

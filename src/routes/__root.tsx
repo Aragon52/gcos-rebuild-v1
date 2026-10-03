@@ -28,7 +28,6 @@ import { ProductSyncProvider } from "@/context/ProductSyncContext";
 import { SeasonalThemeProvider } from "@/lib/seasonal-theme-context";
 import { ErrorBoundary, ErrorFallbackView } from "@/components/ErrorBoundary";
 import { initPWAInstall } from "@/lib/pwa-install";
-import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 
 function NotFoundComponent() {
   return (
@@ -177,9 +176,32 @@ function RootComponent() {
       });
     }
   }, []);
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: "GCOS",
+        url: "https://globalcart-onlineshop.com/",
+        logo: "https://globalcart-onlineshop.com/brand/logo-header.svg",
+        contactPoint: {
+          "@type": "ContactPoint",
+          url: "https://globalcart-onlineshop.com/contact",
+          contactType: "customer support",
+        },
+      },
+      {
+        "@type": "WebSite",
+        name: "GCOS",
+        url: "https://globalcart-onlineshop.com/",
+        description: "Global online marketplace for products, categories, and reseller stores.",
+      },
+    ],
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <ErrorBoundary boundaryName="root_providers" fullScreen>
         <I18nextProvider i18n={i18n}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -194,7 +216,6 @@ function RootComponent() {
                             <AdminAuthProvider>
                               <Toaster />
                               <Sonner />
-                              <PortalSwitcher />
                               <ErrorBoundary boundaryName="router_outlet" fullScreen={false}>
                                 <Outlet />
                               </ErrorBoundary>

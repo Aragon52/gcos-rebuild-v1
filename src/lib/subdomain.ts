@@ -27,44 +27,35 @@ export function isAppModeDriven(): boolean {
   return false;
 }
 
+/**
+ * Returns true if the portal switcher should be visible.
+ */
 export function shouldShowPortalSwitcher(): boolean {
   try {
-    if (typeof window === "undefined") return false;
     const host = window.location.hostname;
-
-    // Explicitly exclude on production domain and custom domains
-    if (
-      host === "globalcart-onlineshop.com" ||
-      host.endsWith(".globalcart-onlineshop.com") ||
-      host === "lovable.app" ||
-      host.endsWith(".lovable.app")
-    ) {
+    const isDev = host.includes('ais-dev-') || host === 'localhost' || host === '127.0.0.1';
+    
+    if (isDev) return true;
+    
+    // Explicitly hide in production builds unless it's a dev/preview environment
+    if (import.meta.env.PROD) {
       return false;
     }
-
-    // Only render on development/preview runtimes (localhost, ais-dev, ais-pre, Cloud Run dev previews)
-    const isDevPreview =
-      host.includes("ais-dev-") ||
-      host.includes("ais-pre-") ||
-      host.includes(".run.app") ||
-      host === "localhost" ||
-      host === "127.0.0.1";
-
-    return isDevPreview;
-  } catch (e) {
-    return false;
-  }
-}
-
-export function setPortalOverride(portal: PortalType) {
-  try {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem("dev_portal_override", portal);
-    }
+    
+    if (import.meta.env.DEV) return true;
   } catch (e) { /* ignore */ }
+  return false;
 }
 
 export function detectPortal(): PortalType {
+  // 0. Manual override (Highest priority for dev)
+  try {
+    const override = typeof window !== 'undefined' ? localStorage.getItem("dev_portal_override") as PortalType : null;
+    if (override === "admin" || override === "reseller" || override === "customer") {
+      return override;
+    }
+  } catch (e) { /* ignore */ }
+
   // 1. Env vars (Hard lock for production deployments)
   const mode = import.meta.env.VITE_PORTAL || import.meta.env.VITE_APP_MODE;
   if (mode === "admin") return "admin";
@@ -73,23 +64,18 @@ export function detectPortal(): PortalType {
 
   // 2. Subdomain detection
   try {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (host.startsWith("admin.") || host.startsWith("administration.")) return "admin";
-      if (host.startsWith("reseller.") || host.startsWith("retailshops.")) return "reseller";
-    }
+    const host = window.location.hostname;
+    if (host.startsWith("admin.") || host.startsWith("administration.")) return "admin";
+    if (host.startsWith("reseller.") || host.startsWith("retailshops.")) return "reseller";
   } catch (e) { /* ignore */ }
 
   // 3. Path-based detection (Fallback for unified mode)
   try {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
-      if (path.startsWith("/admin")) return "admin";
-      if (path.startsWith("/reseller")) return "reseller";
-    }
+    const path = window.location.pathname;
+    if (path.startsWith("/admin")) return "admin";
+    if (path.startsWith("/reseller")) return "reseller";
   } catch (e) { /* ignore */ }
 
-  // 4. Root domain (globalcart-onlineshop.com) points to customer portal
   return "customer";
 }
 

@@ -59,7 +59,7 @@ function creditScoreColor(score: number) {
 export default function ARSRetailShopsPage() {
   const queryClient = useQueryClient();
   const resellers = useUnifiedResellers();
-  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
+  const { canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds } = useAdminAccess();
 
   const [shops, setShops] = useState<RetailShop[]>([]);
 
@@ -72,10 +72,10 @@ export default function ARSRetailShopsPage() {
     
     setShops(resellers.map(r => ({
       id: r.id,
-      resellerId: r.resellerId ? `GRS${r.resellerId}` : (r.id.startsWith('GRS') ? r.id : `GRS-${r.id.substring(0, 8).toUpperCase()}`),
+      resellerId: r.resellerId ? `GRS${r.resellerId}` : r.id.substring(0, 8).toUpperCase(),
       rawResellerId: r.resellerId,
-      resellerName: (r.firstName || r.lastName) ? `${r.firstName || ''} ${r.lastName || ''}`.trim() : (r.name || 'Reseller Partner'),
-      shopName: r.shopName || `${r.name || 'Reseller'}'s Shop`,
+      resellerName: `${r.firstName} ${r.lastName}`,
+      shopName: r.shopName || `${r.firstName} ${r.lastName}'s Shop`,
       vipLevel: parseInt(String(r.level).match(/\d+/)?.[0] || '0', 10),
       productsLimit: r.productLimit || 20,
       starRating: r.starRating || 2.0,
@@ -84,10 +84,7 @@ export default function ARSRetailShopsPage() {
       status: r.isSuspended ? "Frozen" : "Active", 
       referralId: r.referralId,
       referredBy: r.referredBy,
-      memberOfAdminId: r.memberOfAdminId,
-      adminMember: r.adminMember,
-      staffName: r.staffName,
-      staffId: r.staffId,
+      memberOfAdminId: r.memberOfAdminId
     })));
   }, [resellers]);
 
@@ -103,7 +100,9 @@ export default function ARSRetailShopsPage() {
   const filtered = useMemo(() => {
     const base = shops.filter((s) => {
       if (canSeeAll) return true;
-      return hasAccessToReseller(s);
+      return (s.referralId && allowedReferralIds.includes(s.referralId)) ||
+             (s.referredBy && (allowedStaffIds.includes(s.referredBy) || allowedStaffDocIds.includes(s.referredBy))) ||
+             (s.memberOfAdminId && allowedAdminIds.includes(s.memberOfAdminId));
     });
 
     return base.filter(
@@ -114,7 +113,7 @@ export default function ARSRetailShopsPage() {
         s.id.toLowerCase().includes(search.toLowerCase()) ||
         (s.referralId && s.referralId.toLowerCase().includes(search.toLowerCase()))
     );
-  }, [shops, search, canSeeAll, hasAccessToReseller]);
+  }, [shops, search, canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds]);
 
   /* ── actions ── */
   const handleFreeze = async (shop: RetailShop) => {

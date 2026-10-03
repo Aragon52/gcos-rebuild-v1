@@ -24,7 +24,6 @@ const PUBLIC_PATHS = (() => {
 })();
 
 export default function ResellerLayout({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
   const { reseller, loading } = useReseller();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -34,10 +33,6 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
 
   // Real-time listener for deposit status approvals and balance updates
   useDepositAlerts();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const isPublic = useMemo(() => {
     const norm = pathname.replace(/\/$/, "") || "/";
@@ -53,7 +48,7 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
 
   // Online status heartbeat
   useEffect(() => {
-    if (!reseller?.id || isPublic || !mounted) return;
+    if (!reseller?.id || isPublic) return;
 
     const setOnline = async (online: boolean) => {
       try {
@@ -95,9 +90,9 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
     return () => {
       setOnline(false);
     };
-  }, [reseller?.id, reseller?.firstName, reseller?.lastName, isPublic, mounted]);
+  }, [reseller?.id, reseller?.firstName, reseller?.lastName, isPublic]);
 
-  if (!mounted || loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />

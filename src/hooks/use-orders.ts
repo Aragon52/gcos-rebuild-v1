@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { DEFAULT_ORDERS } from "@/data/default-seed-data";
 
 export interface Order {
   id: string;
@@ -43,7 +42,7 @@ async function resolveResellerId(maybeId: string): Promise<string | null> {
   return null;
 }
 
-export function useOrders(pageSize: number = 2000) {
+export function useOrders(pageSize: number = 20) {
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -131,72 +130,20 @@ export function useOrders(pageSize: number = 2000) {
   const queryResult = useQuery({
     queryKey: ["orders", pageSize],
     queryFn: async () => {
-      let data: any[] = [];
-      try {
-        const res = await supabase
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(pageSize);
-        
-        if (res.error) {
-          const fallback = await supabase.from("orders").select("*").limit(pageSize);
-          data = fallback.data || [];
-        } else {
-          data = res.data || [];
-        }
-      } catch (e) {
-        console.warn("Orders fetch fallback:", e);
-        const fallback = await supabase.from("orders").select("*").limit(pageSize);
-        data = fallback.data || [];
-      }
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(pageSize);
       
-      // Merge with local orders and DEFAULT_ORDERS
-      let localOrders: any[] = [];
-      try {
-        const stored = typeof window !== "undefined" ? localStorage.getItem("gcos_orders") : null;
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) localOrders = parsed;
-        }
-      } catch (e) {
-        // ignore
-      }
-
-      const seenIds = new Set<string>();
-      const combined: Order[] = [];
-
-      localOrders.forEach(item => {
-        const mapped = mapDataToOrder(item);
-        if (mapped.id && !seenIds.has(mapped.id)) {
-          seenIds.add(mapped.id);
-          combined.push(mapped);
-        }
-      });
-
-      (data || []).forEach(item => {
-        const mapped = mapDataToOrder(item);
-        if (mapped.id && !seenIds.has(mapped.id)) {
-          seenIds.add(mapped.id);
-          combined.push(mapped);
-        }
-      });
-
-      DEFAULT_ORDERS.forEach(item => {
-        const mapped = mapDataToOrder(item);
-        if (mapped.id && !seenIds.has(mapped.id)) {
-          seenIds.add(mapped.id);
-          combined.push(mapped);
-        }
-      });
-
-      combined.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-
-      setHasMore(combined.length >= pageSize);
+      if (error) throw error;
+      
+      const orders = (data || []).map(mapDataToOrder);
+      setHasMore(orders.length === pageSize);
       setCurrentPage(0);
-      return combined;
+      return orders;
     },
-    staleTime: 5000,
+    staleTime: 30000,
   });
 
   return {
