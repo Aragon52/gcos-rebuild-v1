@@ -21,7 +21,7 @@ interface ACHCustomer {
 import { useUnifiedResellers } from "@/lib/unified-hooks";
 
 export default function ACHCustomersPage() {
-  const { canSeeAll, allowedReferralIds, allowedStaffIds, allowedStaffDocIds, allowedAdminIds } = useAdminAccess();
+  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
   const [search, setSearch] = useState("");
   const resellers = useUnifiedResellers();
   
@@ -36,24 +36,23 @@ export default function ACHCustomersPage() {
       referralId: r.referralId,
       referredBy: r.referredBy,
       memberOfAdminId: r.memberOfAdminId,
+      adminMember: r.adminMember,
+      staffName: r.staffName,
+      staffId: r.staffId,
     }));
   }, [resellers]);
 
   const filtered = useMemo(() => {
     let list = achCustomers;
     if (!canSeeAll) {
-      list = list.filter(c => 
-        (c.referralId && allowedReferralIds.includes(c.referralId)) ||
-        (c.referredBy && (allowedStaffIds.includes(c.referredBy) || allowedStaffDocIds.includes(c.referredBy))) ||
-        (c.memberOfAdminId && allowedAdminIds.includes(c.memberOfAdminId))
-      );
+      list = list.filter(c => hasAccessToReseller(c));
     }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(c => c.name.toLowerCase().includes(q) || c.bank.toLowerCase().includes(q));
     }
     return list;
-  }, [achCustomers, canSeeAll, allowedReferralIds, allowedStaffIds, allowedStaffDocIds, allowedAdminIds, search]);
+  }, [achCustomers, canSeeAll, hasAccessToReseller, search]);
 
   return (
     <div className="space-y-6 animate-fade-in">

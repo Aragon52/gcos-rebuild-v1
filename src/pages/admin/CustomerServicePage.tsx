@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAdminAccess } from "@/hooks/use-admin-access";
+import { useUnifiedResellers } from "@/lib/unified-hooks";
 
 interface UnifiedSession {
   id: string;
@@ -382,8 +384,32 @@ export default function CustomerServicePage() {
     }
   };
 
+  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
+  const unifiedResellers = useUnifiedResellers();
+
+  const allowedResellerIds = useMemo(() => {
+    if (canSeeAll) return null;
+    const ids = new Set<string>();
+    unifiedResellers.filter(r => hasAccessToReseller(r)).forEach(r => {
+      ids.add(String(r.id));
+      if (r.resellerId) {
+        ids.add(String(r.resellerId));
+        ids.add(`GRS${r.resellerId}`);
+      }
+    });
+    return ids;
+  }, [canSeeAll, hasAccessToReseller, unifiedResellers]);
+
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
+      if (!canSeeAll && s.type === "reseller" && s.reseller_id) {
+        const reseller = unifiedResellers.find(r => r.id === s.reseller_id || String(r.resellerId) === s.reseller_id);
+        if (reseller && hasAccessToReseller(reseller)) {
+          // allowed
+        } else if (allowedResellerIds && !allowedResellerIds.has(String(s.reseller_id))) {
+          return false;
+        }
+      }
       if (sessionFilter !== "all" && s.type !== sessionFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -391,7 +417,7 @@ export default function CustomerServicePage() {
       }
       return true;
     });
-  }, [sessions, sessionFilter, searchQuery]);
+  }, [sessions, sessionFilter, searchQuery, canSeeAll, allowedResellerIds, unifiedResellers, hasAccessToReseller]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in">

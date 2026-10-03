@@ -21,7 +21,7 @@ interface ACHTransaction {
 }
 
 export default function ACHFinancialPage() {
-  const { canSeeAll, allowedReferralIds, allowedStaffIds, allowedStaffDocIds, allowedAdminIds } = useAdminAccess();
+  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
   
   const { data: deposits = [] } = useDepositRequests();
   const { data: withdrawals = [] } = useWithdrawalRequests();
@@ -64,12 +64,8 @@ export default function ACHFinancialPage() {
 
   const filtered = useMemo(() => {
     if (canSeeAll) return transactions;
-    return transactions.filter(tx => 
-      (tx.referralId && allowedReferralIds.includes(tx.referralId)) ||
-      (tx.referredBy && (allowedStaffIds.includes(tx.referredBy) || allowedStaffDocIds.includes(tx.referredBy))) ||
-      (tx.memberOfAdminId && allowedAdminIds.includes(tx.memberOfAdminId))
-    );
-  }, [transactions, canSeeAll, allowedReferralIds, allowedStaffIds, allowedStaffDocIds, allowedAdminIds]);
+    return transactions.filter(tx => hasAccessToReseller(tx));
+  }, [transactions, canSeeAll, hasAccessToReseller]);
 
   const summary = useMemo(() => {
     const money = (n: number) =>
