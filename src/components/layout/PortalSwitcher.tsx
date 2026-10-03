@@ -4,6 +4,8 @@ import { detectPortal, setPortalOverride, shouldShowPortalSwitcher, type PortalT
 import { useNavigate, useLocation } from "@/lib/router-compat";
 
 export function PortalSwitcher() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -15,8 +17,6 @@ export function PortalSwitcher() {
     return null;
   }
 
-  const navigate = useNavigate();
-  const location = useLocation();
   const currentPortal = detectPortal();
 
   const handleSwitch = (portal: PortalType) => {

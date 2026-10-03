@@ -123,33 +123,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap",
       },
     ],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": "Organization",
-              name: "GCOS",
-              url: "https://globalcart-onlineshop.com/",
-              logo: "https://globalcart-onlineshop.com/brand/logo-header.svg",
-              contactPoint: {
-                "@type": "ContactPoint",
-                url: "https://globalcart-onlineshop.com/contact",
-                contactType: "customer support",
-              },
-            },
-            {
-              "@type": "WebSite",
-              name: "GCOS",
-              url: "https://globalcart-onlineshop.com/",
-              description: "Global online marketplace for products, categories, and reseller stores.",
-            },
-          ],
-        }),
-      },
-    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
