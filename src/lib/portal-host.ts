@@ -27,18 +27,6 @@ const HOST_PREFIX_RULES: Array<{ test: RegExp; prefix: PortalPrefix }> = [
 const RESERVED_PATH = /^\/(api|_serverFn|_server|_build|assets|src|node_modules|@|__|\.netlify|\.tanstack|favicon|robots\.txt|sitemap|manifest|brand|images|fonts|crypto|badges|placeholder|\.well-known|sw\.js|offline\.html|store|products|categories|cart|checkout)/;
 
 export function portalPrefixForHost(hostname?: string | null): PortalPrefix {
-  // 0. Manual dev override via localStorage
-  try {
-    if (typeof window !== "undefined") {
-      const override = localStorage.getItem("dev_portal_override");
-      if (override === "admin") return "/admin";
-      if (override === "reseller") return "/reseller";
-      if (override === "customer" || override === "site") return "";
-    }
-  } catch (e) {
-    /* ignore */
-  }
-
   // 1. Explicit env configuration (VITE_PORTAL or VITE_APP_MODE)
   const envMode =
     typeof import.meta !== "undefined" && import.meta.env

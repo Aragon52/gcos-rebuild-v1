@@ -65,14 +65,6 @@ export function setPortalOverride(portal: PortalType) {
 }
 
 export function detectPortal(): PortalType {
-  // 0. Manual override (Highest priority for dev)
-  try {
-    const override = typeof window !== 'undefined' ? localStorage.getItem("dev_portal_override") as PortalType : null;
-    if (override === "admin" || override === "reseller" || override === "customer") {
-      return override;
-    }
-  } catch (e) { /* ignore */ }
-
   // 1. Env vars (Hard lock for production deployments)
   const mode = import.meta.env.VITE_PORTAL || import.meta.env.VITE_APP_MODE;
   if (mode === "admin") return "admin";
@@ -81,19 +73,24 @@ export function detectPortal(): PortalType {
 
   // 2. Subdomain detection
   try {
-    const host = window.location.hostname;
-    if (host.startsWith("admin.") || host.startsWith("administration.")) return "admin";
-    if (host.startsWith("reseller.") || host.startsWith("retailshops.")) return "reseller";
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host.startsWith("admin.") || host.startsWith("administration.")) return "admin";
+      if (host.startsWith("reseller.") || host.startsWith("retailshops.")) return "reseller";
+    }
   } catch (e) { /* ignore */ }
 
   // 3. Path-based detection (Fallback for unified mode)
   try {
-    const path = window.location.pathname;
-    if (path.startsWith("/admin")) return "admin";
-    if (path.startsWith("/reseller")) return "reseller";
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.startsWith("/admin")) return "admin";
+      if (path.startsWith("/reseller")) return "reseller";
+    }
   } catch (e) { /* ignore */ }
 
-  return "admin";
+  // 4. Root domain (globalcart-onlineshop.com) points to customer portal
+  return "customer";
 }
 
 /** @deprecated Use detectPortal() === "admin" instead */
