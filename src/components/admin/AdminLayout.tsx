@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/admin/AppSidebar";
-import { Search, ChevronRight, Moon, Sun, PinOff, LogOut, PanelLeft } from "lucide-react";
+import { DataDiagnosticsModal } from "@/components/admin/DataDiagnosticsModal";
+import { Activity } from "lucide-react";
 import { useLocation, useNavigate } from "@/lib/router-compat";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const pageInfo = pageTitles[location.pathname] || { title: "Page", breadcrumb: "—" };
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const [diagModalOpen, setDiagModalOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -119,6 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <SidebarProvider defaultOpen={false}>
       <AdminGlobalNotifications />
+      <DataDiagnosticsModal open={diagModalOpen} onOpenChange={setDiagModalOpen} />
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
 
@@ -137,6 +140,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setDiagModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-semibold"
+                title="Data Retrieval & Referral Diagnostic Utility"
+              >
+                <Activity className="h-4 w-4" />
+                <span className="hidden md:inline">Data Diagnostics</span>
+              </button>
+
               <div className="hidden md:flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <input

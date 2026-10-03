@@ -1,10 +1,26 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+const getEnv = (key: string) => {
+  let val = "";
+  try {
+    if (typeof import.meta !== "undefined" && import.meta.env) {
+      val = import.meta.env[key] || "";
+    }
+  } catch (e) {
+    // ignore
+  }
+  if (!val && typeof process !== "undefined" && process.env) {
+    val = process.env[key] || "";
+  }
+  return val;
+};
+
+const supabaseUrl = (getEnv("VITE_SUPABASE_URL") || getEnv("SUPABASE_URL")).trim();
 const supabaseAnonKey = (
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  ''
+  getEnv("VITE_SUPABASE_ANON_KEY") ||
+  getEnv("VITE_SUPABASE_PUBLISHABLE_KEY") ||
+  getEnv("SUPABASE_PUBLISHABLE_KEY") ||
+  getEnv("SUPABASE_SERVICE_ROLE_KEY")
 ).trim();
 
 if (!supabaseUrl || !supabaseAnonKey) {

@@ -43,7 +43,7 @@ async function resolveResellerId(maybeId: string): Promise<string | null> {
   return null;
 }
 
-export function useOrders(pageSize: number = 20) {
+export function useOrders(pageSize: number = 2000) {
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
