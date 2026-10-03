@@ -27,24 +27,41 @@ export function isAppModeDriven(): boolean {
   return false;
 }
 
-/**
- * Returns true if the portal switcher should be visible.
- */
 export function shouldShowPortalSwitcher(): boolean {
   try {
+    if (typeof window === "undefined") return false;
     const host = window.location.hostname;
-    const isDev = host.includes('ais-dev-') || host === 'localhost' || host === '127.0.0.1';
-    
-    if (isDev) return true;
-    
-    // Explicitly hide in production builds unless it's a dev/preview environment
-    if (import.meta.env.PROD) {
+
+    // Explicitly exclude on production domain and custom domains
+    if (
+      host === "globalcart-onlineshop.com" ||
+      host.endsWith(".globalcart-onlineshop.com") ||
+      host === "lovable.app" ||
+      host.endsWith(".lovable.app")
+    ) {
       return false;
     }
-    
-    if (import.meta.env.DEV) return true;
+
+    // Only render on development/preview runtimes (localhost, ais-dev, ais-pre, Cloud Run dev previews)
+    const isDevPreview =
+      host.includes("ais-dev-") ||
+      host.includes("ais-pre-") ||
+      host.includes(".run.app") ||
+      host === "localhost" ||
+      host === "127.0.0.1";
+
+    return isDevPreview;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function setPortalOverride(portal: PortalType) {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("dev_portal_override", portal);
+    }
   } catch (e) { /* ignore */ }
-  return false;
 }
 
 export function detectPortal(): PortalType {
@@ -76,7 +93,7 @@ export function detectPortal(): PortalType {
     if (path.startsWith("/reseller")) return "reseller";
   } catch (e) { /* ignore */ }
 
-  return "customer";
+  return "admin";
 }
 
 /** @deprecated Use detectPortal() === "admin" instead */

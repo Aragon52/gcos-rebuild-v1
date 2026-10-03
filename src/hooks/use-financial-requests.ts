@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { DEFAULT_DEPOSITS, DEFAULT_WITHDRAWALS } from "@/data/default-seed-data";
 
 export interface DepositRequest {
   id: string;
@@ -68,22 +69,39 @@ export function useDepositRequests() {
     queryKey: ["deposit-requests"],
     queryFn: async () => {
       try {
-        let { data, error } = await supabase
-          .from("deposit_requests")
-          .select("*");
+        let [res1, res2, res3] = await Promise.all([
+          supabase.from("deposit_requests").select("*").limit(2000),
+          supabase.from("deposits").select("*").limit(2000),
+          supabase.from("ars_deposits").select("*").limit(2000)
+        ]);
         
-        if (error) throw error;
+        const combined = [
+          ...(res1.data || []),
+          ...(res2.data || []),
+          ...(res3.data || [])
+        ];
+
+        // Deduplicate by ID
+        const seenIds = new Set<string>();
+        const data: any[] = [];
+        combined.forEach(item => {
+          const id = String(item.id || `${item.reseller_id}-${item.created_at}`);
+          if (!seenIds.has(id)) {
+            seenIds.add(id);
+            data.push(item);
+          }
+        });
         
-        const sorted = (data || []).sort((a: any, b: any) => {
-          const tA = new Date(a.createdAt || a.created_at || 0).getTime();
-          const tB = new Date(b.createdAt || b.created_at || 0).getTime();
+        const sorted = data.sort((a: any, b: any) => {
+          const tA = new Date(a.createdAt || a.created_at || a.date || 0).getTime();
+          const tB = new Date(b.createdAt || b.created_at || b.date || 0).getTime();
           return tB - tA;
         });
 
-        return sorted.map((item: any) => {
+        const mapped = sorted.map((item: any) => {
           let method = item.method;
           if (!method) {
-            const rem = (item.remark || "").toLowerCase();
+            const rem = (item.remark || item.notes || "").toLowerCase();
             if (rem.includes("card") || rem.includes("onramper") || rem.includes("visa") || rem.includes("mastercard")) {
               method = "Credit/Debit Card (Onramper)";
             } else if (rem.includes("bank") || rem.includes("wire")) {
@@ -92,13 +110,30 @@ export function useDepositRequests() {
               method = "USDT (TRC20)";
             }
           }
+
+          const rawStatus = String(item.status || "Pending");
+          const normalizedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+
           return {
-            ...item,
+            id: String(item.id || ""),
+            resellerId: String(item.reseller_id || item.resellerId || item.user_id || item.id || ""),
+            resellerDocId: String(item.reseller_doc_id || item.reseller_id || item.resellerId || item.user_id || item.id || ""),
+            resellerName: String(item.reseller_name || item.resellerName || item.shop_name || item.name || "Reseller"),
+            amount: Number(item.amount ?? item.total_amount ?? 0),
+            status: (normalizedStatus === "Approved" || normalizedStatus === "Rejected" ? normalizedStatus : "Pending") as "Pending" | "Approved" | "Rejected",
             method,
-            proofImage: item.screenshot || item.proofImage || "",
-            createdAt: item.createdAt || item.created_at || new Date().toISOString()
+            proofImage: item.screenshot || item.proof_image || item.proofImage || item.image || item.receipt || "",
+            remark: item.remark || item.notes || "",
+            createdAt: item.createdAt || item.created_at || item.date || new Date().toISOString(),
+            memberOfAdminId: item.member_of_admin_id || item.memberOfAdminId || "",
+            referralId: item.referral_id || item.referralId || item.referral_code || "",
+            staffId: item.staff_id || item.staffId || item.referred_by || "",
+            adminId: item.admin_id || item.adminId || "",
           };
         }) as DepositRequest[];
+
+        console.log(`[FINANCIAL] Loaded ${mapped.length} deposit requests`);
+        return mapped;
       } catch (error) {
         console.error("Error fetching deposit requests:", error);
         return [];
@@ -128,32 +163,70 @@ export function useWithdrawalRequests() {
     queryKey: ["withdrawal-requests"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from("withdrawal_requests")
-          .select("*");
+        const [res1, res2, res3] = await Promise.all([
+          supabase.from("withdrawal_requests").select("*").limit(2000),
+          supabase.from("withdrawals").select("*").limit(2000),
+          supabase.from("ars_withdrawals").select("*").limit(2000)
+        ]);
         
-        if (error) throw error;
+        const combined = [
+          ...(res1.data || []),
+          ...(res2.data || []),
+          ...(res3.data || [])
+        ];
+
+        // Deduplicate by ID
+        const seenIds = new Set<string>();
+        const data: any[] = [];
+        combined.forEach(item => {
+          const id = String(item.id || `${item.reseller_id}-${item.created_at}`);
+          if (!seenIds.has(id)) {
+            seenIds.add(id);
+            data.push(item);
+          }
+        });
         
-        const sorted = (data || []).sort((a: any, b: any) => {
-          const tA = new Date(a.createdAt || a.created_at || 0).getTime();
-          const tB = new Date(b.createdAt || b.created_at || 0).getTime();
+        const sorted = data.sort((a: any, b: any) => {
+          const tA = new Date(a.createdAt || a.created_at || a.date || 0).getTime();
+          const tB = new Date(b.createdAt || b.created_at || b.date || 0).getTime();
           return tB - tA;
         });
 
-        return sorted.map((item: any) => {
+        const mapped = sorted.map((item: any) => {
           let parsed: Record<string, unknown> | undefined;
-          try {
-            parsed = item.account_info ? (typeof item.account_info === 'string' ? JSON.parse(item.account_info) : item.account_info) : undefined;
-          } catch {
-            parsed = undefined;
+          const rawAccount = item.account_info || item.bank_info || item.bankInfo;
+          if (rawAccount) {
+            try {
+              parsed = typeof rawAccount === 'string' ? JSON.parse(rawAccount) : rawAccount;
+            } catch {
+              parsed = undefined;
+            }
           }
+
+          const rawStatus = String(item.status || "Pending");
+          const normalizedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+
           return {
-            ...item,
-            bankInfo: parsed,
-            remark: item.remark ?? (parsed?.rejectionRemark as string | undefined),
-            createdAt: item.createdAt || item.created_at || new Date().toISOString(),
+            id: String(item.id || ""),
+            resellerId: String(item.reseller_id || item.resellerId || item.user_id || item.id || ""),
+            resellerDocId: String(item.reseller_doc_id || item.reseller_id || item.resellerId || item.user_id || item.id || ""),
+            resellerName: String(item.reseller_name || item.resellerName || item.shop_name || item.name || "Reseller"),
+            amount: Number(item.amount ?? item.total_amount ?? 0),
+            status: (normalizedStatus === "Approved" || normalizedStatus === "Rejected" ? normalizedStatus : "Pending") as "Pending" | "Approved" | "Rejected",
+            method: item.method || (parsed ? "Bank Transfer" : "USDT (TRC20)"),
+            bankInfo: parsed as any,
+            usdtAddress: item.usdt_address || item.usdtAddress || (parsed?.usdtAddress as string) || "",
+            remark: item.remark || item.notes || (parsed?.rejectionRemark as string | undefined) || "",
+            createdAt: item.createdAt || item.created_at || item.date || new Date().toISOString(),
+            memberOfAdminId: item.member_of_admin_id || item.memberOfAdminId || "",
+            referralId: item.referral_id || item.referralId || item.referral_code || "",
+            staffId: item.staff_id || item.staffId || item.referred_by || "",
+            adminId: item.admin_id || item.adminId || "",
           };
         }) as WithdrawalRequest[];
+
+        console.log(`[FINANCIAL] Loaded ${mapped.length} withdrawal requests`);
+        return mapped;
       } catch (error) {
         console.error("Error fetching withdrawal requests:", error);
         return [];

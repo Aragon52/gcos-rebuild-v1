@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Reseller } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { calculateVipLevel, getVipProductLimit } from "@/lib/vip-utils";
+import { DEFAULT_RESELLERS } from "@/data/default-seed-data";
 
 const EMPTY_RESELLERS: Reseller[] = [];
 
@@ -47,13 +48,13 @@ export function useUnifiedResellers() {
           resellersTableRes,
           ordersRes
         ] = await Promise.all([
-          supabase.from('users').select('*').limit(1000).catch(e => ({ data: [], error: e })),
-          supabase.from('reseller_profiles').select('*').limit(1000).catch(e => ({ data: [], error: e })),
-          supabase.from('sla_admins').select('*').limit(200).catch(e => ({ data: [], error: e })),
-          supabase.from('sla_staff').select('*').limit(200).catch(e => ({ data: [], error: e })),
-          supabase.from('retail_shops').select('*').limit(1000).catch(e => ({ data: [], error: e })),
-          supabase.from('resellers').select('*').limit(1000).catch(e => ({ data: [], error: e })),
-          supabase.from('orders').select('reseller_id, created_at').limit(2000).catch(e => ({ data: [], error: e }))
+          supabase.from('users').select('*').limit(3000),
+          supabase.from('reseller_profiles').select('*').limit(3000),
+          supabase.from('sla_admins').select('*').limit(500),
+          supabase.from('sla_staff').select('*').limit(500),
+          supabase.from('retail_shops').select('*').limit(3000),
+          supabase.from('resellers').select('*').limit(3000),
+          supabase.from('orders').select('reseller_id, created_at').limit(5000)
         ]);
 
         const users = (usersRes && 'data' in usersRes && Array.isArray(usersRes.data)) ? usersRes.data : [];
@@ -63,23 +64,37 @@ export function useUnifiedResellers() {
         const retailShops = (retailShopsRes && 'data' in retailShopsRes && Array.isArray(retailShopsRes.data)) ? retailShopsRes.data : [];
         const directResellers = (resellersTableRes && 'data' in resellersTableRes && Array.isArray(resellersTableRes.data)) ? resellersTableRes.data : [];
 
-        console.log(`[UNIFIED_HOOKS] Fetched: ${users.length} users, ${profiles.length} profiles, ${retailShops.length} shops, ${directResellers.length} direct resellers`);
+        console.log(`[UNIFIED_HOOKS] Fetched from DB: ${users.length} users, ${profiles.length} profiles, ${retailShops.length} shops, ${directResellers.length} direct resellers`);
 
         const usersMap = new Map<string, Record<string, unknown>>();
         users.forEach(u => {
           if (u.id) usersMap.set(String(u.id), u);
+          if (u.reseller_id) usersMap.set(String(u.reseller_id), u);
           if (u.email) usersMap.set(String(u.email).toLowerCase(), u);
+        });
+
+        const profilesMap = new Map<string, Record<string, unknown>>();
+        profiles.forEach(p => {
+          if (p.id) profilesMap.set(String(p.id), p);
+          if (p.reseller_id) profilesMap.set(String(p.reseller_id), p);
+          if (p.email) profilesMap.set(String(p.email).toLowerCase(), p);
+          if (p.user_id) profilesMap.set(String(p.user_id), p);
         });
 
         const retailShopsMap = new Map<string, Record<string, unknown>>();
         retailShops.forEach(s => {
           if (s.id) retailShopsMap.set(String(s.id), s);
           if (s.reseller_id) retailShopsMap.set(String(s.reseller_id), s);
+          if (s.email) retailShopsMap.set(String(s.email).toLowerCase(), s);
+          if (s.user_id) retailShopsMap.set(String(s.user_id), s);
         });
         
         const directResellersMap = new Map<string, Record<string, unknown>>();
         directResellers.forEach(r => {
           if (r.id) directResellersMap.set(String(r.id), r);
+          if (r.reseller_id) directResellersMap.set(String(r.reseller_id), r);
+          if (r.email) directResellersMap.set(String(r.email).toLowerCase(), r);
+          if (r.user_id) directResellersMap.set(String(r.user_id), r);
         });
 
         const latestOrderMap = new Map<string, string>();
@@ -117,21 +132,25 @@ export function useUnifiedResellers() {
         });
 
         const allResellerIds = new Set<string>();
-        profiles.forEach(p => p.id && allResellerIds.add(String(p.id)));
-        retailShops.forEach(s => s.id && allResellerIds.add(String(s.id)));
-        directResellers.forEach(r => r.id && allResellerIds.add(String(r.id)));
+        profiles.forEach(p => {
+          const id = p.id || p.reseller_id || p.user_id;
+          if (id) allResellerIds.add(String(id));
+        });
+        retailShops.forEach(s => {
+          const id = s.id || s.reseller_id || s.user_id;
+          if (id) allResellerIds.add(String(id));
+        });
+        directResellers.forEach(r => {
+          const id = r.id || r.reseller_id || r.user_id || r.email;
+          if (id) allResellerIds.add(String(id));
+        });
         
-        // Also include any users who are marked as reseller or not admin/staff
         users.forEach(u => {
           const role = String(u.role || '').toLowerCase();
-          if (role === 'reseller' || (role !== 'owner' && role !== 'admin' && role !== 'staff' && !allResellerIds.has(String(u.id)))) {
-            if (u.id) allResellerIds.add(String(u.id));
+          const id = u.id || u.reseller_id || u.user_id;
+          if (id && (role === 'reseller' || role === 'user' || (role !== 'owner' && role !== 'admin' && role !== 'staff'))) {
+            allResellerIds.add(String(id));
           }
-        });
-
-        const profilesMap = new Map<string, Record<string, unknown>>();
-        profiles.forEach(p => {
-          if (p.id) profilesMap.set(String(p.id), p);
         });
 
         const resellers: Reseller[] = Array.from(allResellerIds).map(id => {
@@ -167,9 +186,10 @@ export function useUnifiedResellers() {
             }
           }
 
-          const firstNameRaw = (userData.first_name as string) || (profileData.first_name as string) || (retailShopData.first_name as string) || (directData.first_name as string) || '';
-          const lastNameRaw = (userData.last_name as string) || (profileData.last_name as string) || (retailShopData.last_name as string) || (directData.last_name as string) || '';
-          const shopName = (profileData.shop_name as string) || (retailShopData.shop_name as string) || (directData.shop_name as string) || (userData.shop_name as string) || (userData.first_name as string) || 'Reseller Store';
+          const rawFullName = (directData.name as string) || (userData.name as string) || (profileData.name as string) || '';
+          const firstNameRaw = (userData.first_name as string) || (userData.firstName as string) || (profileData.first_name as string) || (retailShopData.first_name as string) || (directData.first_name as string) || (rawFullName ? rawFullName.split(' ')[0] : '');
+          const lastNameRaw = (userData.last_name as string) || (userData.lastName as string) || (profileData.last_name as string) || (retailShopData.last_name as string) || (directData.last_name as string) || (rawFullName ? rawFullName.split(' ').slice(1).join(' ') : '');
+          const shopName = (profileData.shop_name as string) || (profileData.shopName as string) || (retailShopData.shop_name as string) || (retailShopData.shopName as string) || (directData.shop_name as string) || (userData.shop_name as string) || (firstNameRaw ? `${firstNameRaw}'s Store` : 'Reseller Store');
 
           const firstName = firstNameRaw || (shopName ? shopName.split(' ')[0] : 'Reseller');
           const lastName = lastNameRaw || (shopName ? shopName.split(' ').slice(1).join(' ') || '' : 'Partner');
@@ -201,30 +221,31 @@ export function useUnifiedResellers() {
             profileData.registration_date,
             profileData.created_at,
             userData.created_at,
+            directData.created_at,
             latestOrderDate
           ].filter(Boolean).map(d => new Date(d as string).getTime());
           
           const maxTime = dates.length > 0 ? Math.max(...dates) : Date.now();
           const lastActive = new Date(maxTime).toISOString();
 
-          const totalDeposits = Number(profileData.total_deposits || directData.total_deposits || 0);
-          const totalWithdrawals = Number(profileData.total_withdrawals || directData.total_withdrawals || 0);
+          const totalDeposits = Number(profileData.total_deposits ?? profileData.totalDeposits ?? directData.total_deposits ?? directData.totalDeposits ?? 0);
+          const totalWithdrawals = Number(profileData.total_withdrawals ?? profileData.totalWithdrawals ?? directData.total_withdrawals ?? directData.totalWithdrawals ?? 0);
           const netDeposits = totalDeposits - totalWithdrawals;
-          const regDate = (profileData.registration_date as string) || (userData.created_at as string) || (directData.created_at as string) || '';
+          const regDate = (profileData.registration_date as string) || (userData.created_at as string) || (directData.created_at as string) || new Date().toISOString();
           
-          const rawLvlStr = (retailShopData.level as string) || (profileData.level as string) || (directData.level as string) || 'VIP-0';
+          const rawLvlStr = (retailShopData.level as string) || (retailShopData.vip_level as string) || (profileData.level as string) || (directData.level as string) || 'VIP-0';
           const explicitLvlNum = parseInt(String(rawLvlStr).match(/\d+/)?.[0] || '0', 10);
           const resolvedLvlNum = calculateVipLevel(netDeposits, explicitLvlNum, regDate);
           const resolvedLevel = `VIP-${resolvedLvlNum}`;
-          const resolvedProductLimit = (retailShopData.product_limit as number) || (profileData.product_limit as number) || getVipProductLimit(resolvedLvlNum, regDate);
+          const resolvedProductLimit = Number(retailShopData.product_limit ?? retailShopData.productLimit ?? profileData.product_limit ?? profileData.productLimit ?? getVipProductLimit(resolvedLvlNum, regDate));
 
-          const rawResellerIdNum = profileData.reseller_id || directData.reseller_id || (typeof userData.reseller_id === 'number' ? userData.reseller_id : undefined);
+          const rawResellerIdNum = profileData.reseller_id ?? profileData.resellerId ?? directData.reseller_id ?? directData.resellerId ?? (typeof userData.reseller_id === 'number' ? userData.reseller_id : undefined);
 
           return {
             id: id,
             firstName,
             lastName,
-            name: firstNameRaw || lastNameRaw ? `${firstNameRaw} ${lastNameRaw}`.trim() : (shopName || 'Unknown Reseller'),
+            name: firstNameRaw || lastNameRaw ? `${firstNameRaw} ${lastNameRaw}`.trim() : (rawFullName || shopName || 'Reseller'),
             shopName,
             shopSlug: (retailShopData.shop_slug as string) || (profileData.shop_slug as string) || '',
             email: (userData.email as string) || (profileData.email as string) || (directData.email as string) || '',
@@ -237,25 +258,26 @@ export function useUnifiedResellers() {
             referralId,
             level: resolvedLevel,
             productLimit: resolvedProductLimit,
-            isSuspended: (retailShopData.is_suspended as boolean) || (profileData.is_suspended as boolean) || false,
-            starRating: (retailShopData.star_rating as number) || (profileData.star_rating as number) || 2.0,
-            creditScore: (retailShopData.credit_score as number) || (profileData.credit_score as number) || 100,
+            isSuspended: (retailShopData.is_suspended as boolean) || (profileData.is_suspended as boolean) || (directData.is_suspended as boolean) || false,
+            starRating: Number(retailShopData.star_rating ?? retailShopData.starRating ?? profileData.star_rating ?? profileData.starRating ?? directData.star_rating ?? 2.0),
+            creditScore: Number(retailShopData.credit_score ?? retailShopData.creditScore ?? profileData.credit_score ?? profileData.creditScore ?? directData.credit_score ?? 100),
             selectedProductIds: [],
             resellerId: rawResellerIdNum as number,
             // Financial fields
-            balance: Number(profileData.balance || directData.balance || 0),
-            pendingBalance: Number(profileData.pending_balance || directData.pending_balance || 0),
-            unpickedBalance: Number(profileData.unpicked_balance || directData.unpicked_balance || 0),
+            balance: Number(profileData.balance ?? directData.balance ?? userData.balance ?? 0),
+            pendingBalance: Number(profileData.pending_balance ?? directData.pending_balance ?? 0),
+            unpickedBalance: Number(profileData.unpicked_balance ?? directData.unpicked_balance ?? 0),
             totalDeposits: totalDeposits,
             totalWithdrawals: totalWithdrawals,
-            totalEarnings: Number(profileData.total_earnings || directData.total_earnings || 0),
-            totalOrders: Number(profileData.total_orders || directData.total_orders || 0),
+            totalEarnings: Number(profileData.total_earnings ?? profileData.totalEarnings ?? directData.total_earnings ?? 0),
+            totalOrders: Number(profileData.total_orders ?? profileData.totalOrders ?? directData.total_orders ?? 0),
             bankInfo: bankInfoVal as { bankName: string; accountName: string; accountNumber: string } | undefined,
             usdtAddress: usdtAddressVal,
             lastActive
           };
         });
 
+        console.log(`[UNIFIED_HOOKS] Successfully resolved ${resellers.length} total resellers for UI`);
         return resellers;
       } catch (error) {
         console.error("Error in useUnifiedResellers queryFn:", error);

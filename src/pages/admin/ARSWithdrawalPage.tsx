@@ -50,11 +50,16 @@ export default function ARSWithdrawalPage() {
     let list = requests.filter((r) => {
       if (canSeeAll) return true;
       
-      const reseller = resellers.find(res => res.id === r.resellerDocId);
+      const reseller = resellers.find(res => 
+        res.id === r.resellerDocId || 
+        res.id === r.resellerId || 
+        String(res.resellerId) === r.resellerId || 
+        res.email === r.resellerId
+      );
       
       const referralId = r.referralId || reseller?.referralId;
       const memberOfAdminId = r.memberOfAdminId || reseller?.memberOfAdminId;
-      const referredBy = reseller?.referredBy;
+      const referredBy = r.staffId || reseller?.referredBy;
 
       if ((referralId && allowedReferralIds.includes(referralId)) ||
           (memberOfAdminId && allowedAdminIds.includes(memberOfAdminId)) ||
@@ -71,14 +76,22 @@ export default function ARSWithdrawalPage() {
       const searchNormalized = q.replace(/^(grs|gsr)-?/, "");
       list = list.filter(
         (r) => {
-          const reseller = resellers.find(res => res.id === r.resellerDocId);
+          const reseller = resellers.find(res => 
+            res.id === r.resellerDocId || 
+            res.id === r.resellerId || 
+            String(res.resellerId) === r.resellerId || 
+            res.email === r.resellerId
+          );
           return (r.resellerId?.toLowerCase().includes(q) || false) ||
                  (r.resellerId?.toLowerCase().includes(searchNormalized) || false) ||
                  (r.resellerName?.toLowerCase().includes(q) || false) ||
                  (r.referralId?.toLowerCase().includes(q) || false) ||
                  (r.staffId?.toLowerCase().includes(q) || false) ||
+                 (r.remark?.toLowerCase().includes(q) || false) ||
+                 r.amount?.toString().includes(q) ||
                  (reseller && (
                    (reseller.shopName?.toLowerCase().includes(q) || false) ||
+                   (reseller.name?.toLowerCase().includes(q) || false) ||
                    (reseller.resellerId?.toString().includes(q) || false) ||
                    (reseller.resellerId?.toString().includes(searchNormalized) || false)
                  ));

@@ -18,14 +18,26 @@ interface ACHCustomer {
   memberOfAdminId?: string;
 }
 
+import { useUnifiedResellers } from "@/lib/unified-hooks";
+
 export default function ACHCustomersPage() {
   const { canSeeAll, allowedReferralIds, allowedStaffIds, allowedStaffDocIds, allowedAdminIds } = useAdminAccess();
   const [search, setSearch] = useState("");
+  const resellers = useUnifiedResellers();
   
   const achCustomers = useMemo(() => {
-    const data: ACHCustomer[] = []; // Mock data
-    return data;
-  }, []);
+    return resellers.map((r) => ({
+      id: r.id,
+      name: r.name || r.shopName || "Customer",
+      bank: r.bankInfo?.bankName || (r.usdtAddress ? `USDT (${r.usdtAddress.slice(0, 6)}...${r.usdtAddress.slice(-4)})` : "Direct Bank ACH"),
+      accountType: r.bankInfo ? "Checking" : "Corporate Settlement",
+      status: (r.isSuspended ? "Suspended" : "Active") as ACHCustomer["status"],
+      lastTransaction: r.lastActive ? new Date(r.lastActive).toLocaleDateString() : new Date().toLocaleDateString(),
+      referralId: r.referralId,
+      referredBy: r.referredBy,
+      memberOfAdminId: r.memberOfAdminId,
+    }));
+  }, [resellers]);
 
   const filtered = useMemo(() => {
     let list = achCustomers;

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Product, Category } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
+import { DEFAULT_PRODUCTS } from "@/data/default-seed-data";
 
 // Types for compatibility with the rest of the app
 export type DbProduct = Product;
@@ -102,30 +103,59 @@ export function useDbProducts() {
         // so page through with .range() to get the full catalogue.
         const CHUNK = 1000;
         const all: unknown[] = [];
-        for (let from = 0; from < 20000; from += CHUNK) {
-          const { data, error } = await supabase
-            .from("products")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .range(from, from + CHUNK - 1);
-
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          all.push(...data);
-          if (data.length < CHUNK) break;
-        }
-        const mapped = all.map(item => dbProductToLegacy(item as never));
-        if (mapped.length > 0) {
-          memoryProductCache = mapped;
+        for (let from = 0; from < 50000; from += CHUNK) {
           try {
-            localStorage.setItem("cached_db_products", JSON.stringify(mapped));
-          } catch (e) {
-            // ignore localStorage quota limit
+            const { data, error } = await supabase
+              .from("products")
+              .select("*")
+              .range(from, from + CHUNK - 1);
+
+            if (error) {
+              console.warn("[USE_DB_PRODUCTS] Chunk fetch notice:", error.message || error);
+              break;
+            }
+            if (!data || data.length === 0) break;
+            all.push(...data);
+            if (data.length < CHUNK) break;
+          } catch (chunkErr) {
+            console.warn("[USE_DB_PRODUCTS] Network interrupted during chunk pagination:", chunkErr);
+            break;
           }
         }
-        return mapped;
+        
+        if (all.length > 0) {
+          console.log(`[USE_DB_PRODUCTS] Loaded ${all.length} total products from database`);
+          const mapped = all.map(item => dbProductToLegacy(item as never));
+          if (mapped.length > 0) {
+            memoryProductCache = mapped;
+            try {
+              localStorage.setItem("cached_db_products", JSON.stringify(mapped));
+            } catch (e) {
+              // ignore localStorage quota limit
+            }
+          }
+          return mapped;
+        }
+
+        // If no products were retrieved, check memory or localStorage cache
+        if (memoryProductCache.length > 0) {
+          return memoryProductCache;
+        }
+        try {
+          const stored = localStorage.getItem("cached_db_products");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              memoryProductCache = parsed;
+              return parsed;
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+        return DEFAULT_PRODUCTS;
       } catch (error) {
-        console.warn("[USE_DB_PRODUCTS] Product fetch network notice, checking cache fallback:", error);
+        console.warn("[USE_DB_PRODUCTS] Product fetch fallback:", error);
         if (memoryProductCache.length > 0) {
           return memoryProductCache;
         }
@@ -141,7 +171,7 @@ export function useDbProducts() {
         } catch (e) {
           // ignore parsing error
         }
-        return [];
+        return DEFAULT_PRODUCTS;
       }
     },
     staleTime: 30000,

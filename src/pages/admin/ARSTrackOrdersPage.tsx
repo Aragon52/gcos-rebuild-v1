@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { useUnifiedResellers } from "@/lib/unified-hooks";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_ORDERS } from "@/data/default-seed-data";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -114,47 +115,86 @@ export default function ARSTrackOrdersPage() {
     let statusStr = String(data.status || "Pending");
     statusStr = statusStr.charAt(0).toUpperCase() + statusStr.slice(1).toLowerCase();
     
+    const id = String(data.id || "");
+    const rawOrderId = data.order_id || data.order_number || data.orderId || data.id;
+    const orderId = rawOrderId ? String(rawOrderId) : (id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "N/A");
+    const rawResellerId = String(data.reseller_id || data.resellerId || data.user_id || data.resellerDocId || "");
+    
+    // Cross-match with unified reseller list
+    const matchedReseller = resellers.find(r => 
+      r.id === rawResellerId || 
+      String(r.resellerId) === rawResellerId || 
+      `GRS${r.resellerId}` === rawResellerId ||
+      r.email === rawResellerId
+    );
+    
+    const resellerName = data.reseller_name || data.resellerName || (matchedReseller ? (matchedReseller.shopName || matchedReseller.name) : (data.customer_name || "Reseller Store"));
+    const staffUsername = data.staff_username || data.staffUsername || matchedReseller?.staffName || "System";
+    const adminName = data.admin_username || data.adminName || matchedReseller?.adminMember || "System";
+    const referralId = data.referral_id || data.referralId || matchedReseller?.referralId || "";
+    const referredBy = data.referred_by_staff_id || data.referredBy || matchedReseller?.referredBy || "";
+    const memberOfAdminId = data.member_of_admin_id || data.memberOfAdminId || matchedReseller?.memberOfAdminId || "";
+
     return {
-      id: data.id,
-      orderId: (data.order_id as string) || (data.order_number as string) || (data.orderId as string) || "N/A",
-      resellerName: data.resellerName || "",
-      resellerId: (data.resellerId as string) || (data.reseller_id as string) || "",
-      resellerNumericId: data.resellerNumericId as number || data.reseller_numeric_id as number || (data.reseller_profiles?.reseller_id as number),
-      humanResellerId: (data.human_reseller_id as string) || "",
-      staffUsername: data.staffUsername || data.staff_username || "System",
-      adminName: data.adminName || data.admin_username || "System",
-      productCount: Number(data.products_count || 0),
-      itemCount: Number(data.items_count || 0),
-      totalCost: data.totalCost || data.total_cost || data.total_amount || 0,
-      serviceCost: data.serviceCost || data.service_cost || 0,
-      profit: data.profit || data.profits || 0,
+      id: id,
+      orderId: orderId,
+      resellerName: resellerName,
+      resellerId: rawResellerId || (matchedReseller ? matchedReseller.id : "N/A"),
+      resellerNumericId: Number(data.resellerNumericId || data.reseller_numeric_id || matchedReseller?.resellerId || 0),
+      humanResellerId: data.human_reseller_id || (matchedReseller?.resellerId ? `GRS${matchedReseller.resellerId}` : ""),
+      staffUsername: staffUsername,
+      adminName: adminName,
+      productCount: Number(data.products_count || data.product_count || data.item_count || 1),
+      itemCount: Number(data.items_count || data.item_count || data.items || 1),
+      totalCost: Number(data.total_cost || data.totalCost || data.total_amount || data.total || data.amount || 0),
+      serviceCost: Number(data.service_cost || data.serviceCost || 0),
+      profit: Number(data.profit || data.profits || 0),
       status: statusStr as OrderStatus,
       focused: data.focused || false,
-      createdAt: data.createdAt || data.created_at,
+      createdAt: data.created_at || data.createdAt || data.date || new Date().toISOString(),
       pickedUpAt: data.picked_up_at || data.pickedUpAt,
       completedAt: data.completed_at || data.completedAt,
-      referralId: data.referralId || data.referral_id,
-      referredBy: data.referredBy || data.referred_by_staff_id,
-      memberOfAdminId: data.memberOfAdminId || data.member_of_admin_id,
+      referralId: referralId,
+      referredBy: referredBy,
+      memberOfAdminId: memberOfAdminId,
     };
   };
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*, reseller_profiles(reseller_id)")
-      .order("created_at", { ascending: false })
-      .limit(fetchLimit);
+    const [res1, res2, res3] = await Promise.all([
+      supabase.from("orders").select("*").limit(fetchLimit),
+      supabase.from("reseller_orders").select("*").limit(fetchLimit).catch(() => ({ data: [] })),
+      supabase.from("ars_orders").select("*").limit(fetchLimit).catch(() => ({ data: [] }))
+    ]);
     
-    if (error) {
-      console.error("Error fetching orders:", error);
-    } else {
-      setOrders((data || []).map(mapOrderData) as unknown as OrderRecord[]);
-      setHasMore((data || []).length >= fetchLimit);
-    }
+    const combined = [
+      ...(res1.data || []),
+      ...(res2.data || []),
+      ...(res3.data || [])
+    ];
+
+    const seenIds = new Set<string>();
+    const data: any[] = [];
+    combined.forEach(item => {
+      const id = String(item.id || item.order_id || item.order_number || `${item.reseller_id}-${item.created_at}`);
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        data.push(item);
+      }
+    });
+
+    data.sort((a, b) => {
+      const tA = new Date(a.created_at || a.createdAt || a.date || 0).getTime();
+      const tB = new Date(b.created_at || b.createdAt || b.date || 0).getTime();
+      return tB - tA;
+    });
+
+    console.log(`[ORDERS] Loaded ${data.length} total orders for track orders page`);
+    setOrders(data.map(mapOrderData) as unknown as OrderRecord[]);
+    setHasMore(data.length >= fetchLimit);
     setLoading(false);
-  }, [fetchLimit]);
+  }, [fetchLimit, resellers]);
 
   useEffect(() => {
     fetchOrders();

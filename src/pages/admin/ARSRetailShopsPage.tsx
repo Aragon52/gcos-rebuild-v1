@@ -72,10 +72,10 @@ export default function ARSRetailShopsPage() {
     
     setShops(resellers.map(r => ({
       id: r.id,
-      resellerId: r.resellerId ? `GRS${r.resellerId}` : r.id.substring(0, 8).toUpperCase(),
+      resellerId: r.resellerId ? `GRS${r.resellerId}` : (r.id.startsWith('GRS') ? r.id : `GRS-${r.id.substring(0, 8).toUpperCase()}`),
       rawResellerId: r.resellerId,
-      resellerName: `${r.firstName} ${r.lastName}`,
-      shopName: r.shopName || `${r.firstName} ${r.lastName}'s Shop`,
+      resellerName: (r.firstName || r.lastName) ? `${r.firstName || ''} ${r.lastName || ''}`.trim() : (r.name || 'Reseller Partner'),
+      shopName: r.shopName || `${r.name || 'Reseller'}'s Shop`,
       vipLevel: parseInt(String(r.level).match(/\d+/)?.[0] || '0', 10),
       productsLimit: r.productLimit || 20,
       starRating: r.starRating || 2.0,
