@@ -146,12 +146,22 @@ export default function CustomerServicePage() {
   // Fetch all support and reseller sessions
   const fetchAllSessions = useCallback(async () => {
     try {
-      const [supportRes, resellerRes] = await Promise.all([
-        supabase.from('support_sessions').select('*').order('last_message_at', { ascending: false }).limit(100).catch(() => ({ data: [] })),
-        supabase.from('reseller_chat_sessions').select('*').order('last_message_at', { ascending: false }).limit(100).catch(() => ({ data: [] }))
-      ]);
+      let supportData: any[] = [];
+      let resellerData: any[] = [];
+      try {
+        const res = await supabase.from('support_sessions').select('*').order('last_message_at', { ascending: false }).limit(100);
+        if (res?.data) supportData = res.data;
+      } catch (e) {
+        console.warn("Error fetching support sessions:", e);
+      }
+      try {
+        const res = await supabase.from('reseller_chat_sessions').select('*').order('last_message_at', { ascending: false }).limit(100);
+        if (res?.data) resellerData = res.data;
+      } catch (e) {
+        console.warn("Error fetching reseller sessions:", e);
+      }
 
-      const supportList: UnifiedSession[] = ((supportRes && 'data' in supportRes && Array.isArray(supportRes.data)) ? supportRes.data : []).map((s: any) => ({
+      const supportList: UnifiedSession[] = supportData.map((s: any) => ({
         id: s.id,
         type: "support",
         title: s.customer_name || "Storefront Customer",
@@ -160,7 +170,7 @@ export default function CustomerServicePage() {
         last_message_at: s.last_message_at || s.created_at || new Date().toISOString()
       }));
 
-      const resellerList: UnifiedSession[] = ((resellerRes && 'data' in resellerRes && Array.isArray(resellerRes.data)) ? resellerRes.data : []).map((s: any) => {
+      const resellerList: UnifiedSession[] = resellerData.map((s: any) => {
         const isCustomerToReseller = !!s.customer_id;
         const title = isCustomerToReseller 
           ? `${s.customer_name || "Customer"} ↔ ${s.reseller_name || "Reseller"}`

@@ -151,10 +151,50 @@ export function useOrders(pageSize: number = 20) {
         data = fallback.data || [];
       }
       
-      const orders = (data || []).map(mapDataToOrder);
-      setHasMore(orders.length === pageSize);
+      // Merge with local orders and DEFAULT_ORDERS
+      let localOrders: any[] = [];
+      try {
+        const stored = typeof window !== "undefined" ? localStorage.getItem("gcos_orders") : null;
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) localOrders = parsed;
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      const seenIds = new Set<string>();
+      const combined: Order[] = [];
+
+      localOrders.forEach(item => {
+        const mapped = mapDataToOrder(item);
+        if (mapped.id && !seenIds.has(mapped.id)) {
+          seenIds.add(mapped.id);
+          combined.push(mapped);
+        }
+      });
+
+      (data || []).forEach(item => {
+        const mapped = mapDataToOrder(item);
+        if (mapped.id && !seenIds.has(mapped.id)) {
+          seenIds.add(mapped.id);
+          combined.push(mapped);
+        }
+      });
+
+      DEFAULT_ORDERS.forEach(item => {
+        const mapped = mapDataToOrder(item);
+        if (mapped.id && !seenIds.has(mapped.id)) {
+          seenIds.add(mapped.id);
+          combined.push(mapped);
+        }
+      });
+
+      combined.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+
+      setHasMore(combined.length >= pageSize);
       setCurrentPage(0);
-      return orders;
+      return combined;
     },
     staleTime: 5000,
   });

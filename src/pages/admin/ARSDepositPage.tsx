@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useAdminAccess } from "@/hooks/use-admin-access";
+import { useAdminAccess, ADMIN_UUID_TO_ACCOUNT } from "@/hooks/use-admin-access";
 import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
 import { useUnifiedResellers } from "@/lib/unified-hooks";
 import { supabase } from "@/lib/supabase";
@@ -41,6 +41,7 @@ export default function ARSDepositPage() {
   const { data: requests = [], isLoading, isError, error, refetch } = useDepositRequests();
   const { updateDepositStatus } = useFinancialMutations();
 
+  const [adminTeamFilter, setAdminTeamFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -121,17 +122,30 @@ export default function ARSDepositPage() {
   /* ─── Filtering ─── */
   const filtered = useMemo(() => {
     let list = requests.filter((r) => {
-      if (canSeeAll) return true;
-      
       const reseller = resellers.find(res => 
         res.id === r.resellerDocId || 
         res.id === r.resellerId || 
         String(res.resellerId) === r.resellerId || 
         res.email === r.resellerId
       );
-      
-      if (reseller && hasAccessToReseller(reseller)) return true;
-      return hasAccessToReseller(r);
+
+      // 1. Role-based inheritance access: Non-owner admins/staff only see their allowed requests
+      if (!canSeeAll) {
+        const hasAccess = (reseller && hasAccessToReseller(reseller)) || hasAccessToReseller(r);
+        if (!hasAccess) return false;
+      }
+
+      // 2. Admin Team dropdown filter
+      if (adminTeamFilter !== "all") {
+        const rawAdmin = `${r.memberOfAdminId || ""} ${r.adminId || ""} ${reseller?.memberOfAdminId || ""} ${reseller?.adminMember || ""}`.toUpperCase();
+        const mappedAdmin = (ADMIN_UUID_TO_ACCOUNT[r.memberOfAdminId || ""] || ADMIN_UUID_TO_ACCOUNT[reseller?.memberOfAdminId || ""] || "").toUpperCase();
+        const target = adminTeamFilter.toUpperCase();
+        if (!rawAdmin.includes(target) && !mappedAdmin.includes(target)) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
@@ -161,7 +175,7 @@ export default function ARSDepositPage() {
       );
     }
     return list;
-  }, [requests, search, statusFilter, canSeeAll, hasAccessToReseller, resellers]);
+  }, [requests, search, statusFilter, adminTeamFilter, canSeeAll, hasAccessToReseller, resellers]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

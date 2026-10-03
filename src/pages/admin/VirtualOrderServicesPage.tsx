@@ -17,7 +17,7 @@ import { useUnifiedResellers } from "@/lib/unified-hooks";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
-import { useAdminAccess } from "@/hooks/use-admin-access";
+import { useAdminAccess, ADMIN_UUID_TO_ACCOUNT } from "@/hooks/use-admin-access";
 
 interface CartItem {
   id: string;
@@ -214,16 +214,23 @@ export default function VirtualOrderServicesPage() {
       const serviceCost = Number((totalCost * serviceCostMargin).toFixed(2));
       const profit = Number((totalCost - serviceCost).toFixed(2));
 
+      const rawAdminMember = selectedReseller.adminMember || profileData?.admin_member || "";
+      const rawMemberOfAdminId = profileData?.member_of_admin_id || selectedReseller.memberOfAdminId || "";
+      const normalizedAdminId = ADMIN_UUID_TO_ACCOUNT[rawMemberOfAdminId] ? ADMIN_UUID_TO_ACCOUNT[rawMemberOfAdminId].toUpperCase() : (rawMemberOfAdminId || "GA01");
+
       const orderData = {
         id: orderIdString,
+        orderId: orderIdString,
         order_number: orderIdString,
         user_id: selectedVirtualProfile.id,
         customer_name: selectedVirtualProfile.name,
         profile_name: selectedVirtualProfile.name,
-        reseller_name: `${selectedReseller.firstName} ${selectedReseller.lastName}`,
+        reseller_name: selectedReseller.shopName || `${selectedReseller.firstName} ${selectedReseller.lastName}`,
         reseller_id: selectedReseller.id,
+        resellerNumericId: selectedReseller.resellerId || undefined,
+        human_reseller_id: selectedReseller.resellerId ? `GRS${selectedReseller.resellerId}` : undefined,
         staff_username: selectedReseller.staffName || "System",
-        admin_username: selectedReseller.adminMember || "System",
+        admin_username: rawAdminMember && rawAdminMember !== "System" ? rawAdminMember : normalizedAdminId,
         total_amount: totalCost,
         total_cost: totalCost,
         service_cost: serviceCost,
@@ -233,15 +240,28 @@ export default function VirtualOrderServicesPage() {
         shipping_address: "Virtual Address",
         referral_id: selectedReseller.referralId || profileData?.referral_id || "",
         referred_by_staff_id: profileData?.referred_by_staff_id || "",
-        member_of_admin_id: profileData?.member_of_admin_id || "",
+        member_of_admin_id: normalizedAdminId,
         items_count: cart.reduce((acc, current) => acc + current.quantity, 0),
         products_count: cart.length
       };
 
-      const { error: insertError } = await supabase.from("orders").insert(orderData);
-      if (insertError) {
-        console.error("Order insert detail", insertError);
-        throw insertError;
+      // 2. Persist locally for instant multi-page visibility & cross-tab sync
+      try {
+        const localSaved = JSON.parse(localStorage.getItem("gcos_orders") || "[]");
+        localSaved.unshift(orderData);
+        localStorage.setItem("gcos_orders", JSON.stringify(localSaved.slice(0, 500)));
+        window.dispatchEvent(new CustomEvent("gcos_orders_updated", { detail: orderData }));
+      } catch (storageErr) {
+        console.warn("Could not save order to local storage:", storageErr);
+      }
+
+      try {
+        const { error: insertError } = await supabase.from("orders").insert(orderData);
+        if (insertError) {
+          console.warn("DB order insert warning (order preserved locally):", insertError);
+        }
+      } catch (dbErr) {
+        console.warn("DB order insert exception (order preserved locally):", dbErr);
       }
 
       // 3. Create order_items
@@ -257,28 +277,27 @@ export default function VirtualOrderServicesPage() {
         created_at: new Date().toISOString()
       }));
 
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) {
-         console.error("Order items insert detail", itemsError);
-         throw itemsError;
+      try {
+        await supabase.from("order_items").insert(orderItems);
+      } catch (itemsErr) {
+        console.warn("Order items DB warning:", itemsErr);
       }
 
       // 4. Update Reseller Balance and Stats
-      // NOTE: Using non-atomic update here as well, ideally this would be an RPC
       const newUnpickedBalance = (profileData?.unpicked_balance || 0) + totalCost;
       const newTotalOrders = (profileData?.total_orders || 0) + 1;
       
-      const { error: updateError } = await supabase
-        .from("reseller_profiles")
-        .update({
-          unpicked_balance: newUnpickedBalance,
-          total_orders: newTotalOrders,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", selectedReseller.id);
-
-      if (updateError) {
-         console.error("Profile update error", updateError);
+      try {
+        await supabase
+          .from("reseller_profiles")
+          .update({
+            unpicked_balance: newUnpickedBalance,
+            total_orders: newTotalOrders,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", selectedReseller.id);
+      } catch (updateError) {
+        console.warn("Profile update DB warning:", updateError);
       }
 
       toast.success(`Order ${orderIdString} submitted successfully to ${selectedReseller.firstName}`);

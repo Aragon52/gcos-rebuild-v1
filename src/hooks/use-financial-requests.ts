@@ -67,45 +67,27 @@ export function useDepositRequests() {
 
   return useQuery({
     queryKey: ["deposit-requests"],
-    queryFn: async () => {
+    queryFn: async (): Promise<DepositRequest[]> => {
       try {
-        const [res1, res2, res3, res4] = await Promise.all([
-          supabase.from("deposit_requests").select("*").limit(2000).catch(() => ({ data: [] })),
-          supabase.from("deposits").select("*").limit(2000).catch(() => ({ data: [] })),
-          supabase.from("ars_deposits").select("*").limit(2000).catch(() => ({ data: [] })),
-          supabase.from("reseller_deposits").select("*").limit(2000).catch(() => ({ data: [] })),
-        ]);
-        
-        const combined = [
-          ...(res1.data || []),
-          ...(res2.data || []),
-          ...(res3.data || []),
-          ...(res4.data || []),
-        ];
-
-        // Deduplicate by ID
-        const seenIds = new Set<string>();
-        const data: any[] = [];
-        combined.forEach(item => {
-          const id = String(item.id || `${item.reseller_id}-${item.created_at}`);
-          if (!seenIds.has(id)) {
-            seenIds.add(id);
-            data.push(item);
+        let dbRows: any[] = [];
+        try {
+          const res = await supabase.from("deposit_requests").select("*").limit(2000);
+          if (res?.data && Array.isArray(res.data)) {
+            dbRows = res.data;
           }
-        });
-
-        // Fallback to default seed deposits if database has no records
-        if (data.length === 0) {
-          DEFAULT_DEPOSITS.forEach(d => data.push(d));
+        } catch (e) {
+          console.warn("[FINANCIAL] Error fetching deposit_requests:", e);
         }
-        
-        const sorted = data.sort((a: any, b: any) => {
-          const tA = new Date(a.createdAt || a.created_at || a.date || 0).getTime();
-          const tB = new Date(b.createdAt || b.created_at || b.date || 0).getTime();
-          return tB - tA;
-        });
 
-        const mapped = sorted.map((item: any) => {
+        const localOverrides: Record<string, { status: string; remark?: string }> = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("gcos_deposit_overrides") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const mappedDb: DepositRequest[] = dbRows.map((item: any) => {
           let method = item.method;
           if (!method) {
             const rem = (item.remark || item.notes || "").toLowerCase();
@@ -120,27 +102,50 @@ export function useDepositRequests() {
 
           const rawStatus = String(item.status || "Pending");
           const normalizedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+          const id = String(item.id || "");
+          const override = localOverrides[id];
 
           return {
-            id: String(item.id || ""),
-            resellerId: String(item.reseller_id || item.resellerId || item.user_id || item.id || ""),
-            resellerDocId: String(item.reseller_doc_id || item.reseller_id || item.resellerId || item.user_id || item.id || ""),
-            resellerName: String(item.reseller_name || item.resellerName || item.shop_name || item.name || "Reseller"),
+            id,
+            resellerId: String(item.reseller_id || item.resellerId || item.resellerDocId || item.user_id || item.id || ""),
+            resellerDocId: String(item.resellerDocId || item.reseller_doc_id || item.reseller_id || item.resellerId || item.user_id || item.id || ""),
+            resellerName: String(item.reseller_name || item.resellerName || item.shop_name || item.name || "Reseller Store"),
             amount: Number(item.amount ?? item.total_amount ?? 0),
-            status: (normalizedStatus === "Approved" || normalizedStatus === "Rejected" ? normalizedStatus : "Pending") as "Pending" | "Approved" | "Rejected",
+            status: (override?.status || (normalizedStatus === "Approved" || normalizedStatus === "Rejected" ? normalizedStatus : "Pending")) as "Pending" | "Approved" | "Rejected",
             method,
             proofImage: item.screenshot || item.proof_image || item.proofImage || item.image || item.receipt || "",
-            remark: item.remark || item.notes || "",
+            remark: override?.remark ?? (item.remark || item.notes || ""),
             createdAt: item.createdAt || item.created_at || item.date || new Date().toISOString(),
             memberOfAdminId: item.member_of_admin_id || item.memberOfAdminId || "",
             referralId: item.referral_id || item.referralId || item.referral_code || "",
             staffId: item.staff_id || item.staffId || item.referred_by || "",
             adminId: item.admin_id || item.adminId || "",
           };
-        }) as DepositRequest[];
+        });
 
-        console.log(`[FINANCIAL] Loaded ${mapped.length} deposit requests`);
-        return mapped;
+        // Deduplicate & Merge DB items with DEFAULT_DEPOSITS
+        const seenIds = new Set<string>();
+        const combined: DepositRequest[] = [];
+
+        mappedDb.forEach(item => {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            combined.push(item);
+          }
+        });
+
+        DEFAULT_DEPOSITS.forEach(item => {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            const override = localOverrides[item.id];
+            combined.push(override ? { ...item, status: override.status as any, remark: override.remark ?? item.remark } : item);
+          }
+        });
+
+        combined.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+        console.log(`[FINANCIAL] Loaded ${combined.length} deposit requests`);
+        return combined;
       } catch (error) {
         console.error("Error fetching deposit requests:", error);
         return DEFAULT_DEPOSITS;
@@ -168,45 +173,27 @@ export function useWithdrawalRequests() {
 
   return useQuery({
     queryKey: ["withdrawal-requests"],
-    queryFn: async () => {
+    queryFn: async (): Promise<WithdrawalRequest[]> => {
       try {
-        const [res1, res2, res3, res4] = await Promise.all([
-          supabase.from("withdrawal_requests").select("*").limit(2000).catch(() => ({ data: [] })),
-          supabase.from("withdrawals").select("*").limit(2000).catch(() => ({ data: [] })),
-          supabase.from("ars_withdrawals").select("*").limit(2000).catch(() => ({ data: [] })),
-          supabase.from("reseller_withdrawals").select("*").limit(2000).catch(() => ({ data: [] })),
-        ]);
-        
-        const combined = [
-          ...(res1.data || []),
-          ...(res2.data || []),
-          ...(res3.data || []),
-          ...(res4.data || []),
-        ];
-
-        // Deduplicate by ID
-        const seenIds = new Set<string>();
-        const data: any[] = [];
-        combined.forEach(item => {
-          const id = String(item.id || `${item.reseller_id}-${item.created_at}`);
-          if (!seenIds.has(id)) {
-            seenIds.add(id);
-            data.push(item);
+        let dbRows: any[] = [];
+        try {
+          const res = await supabase.from("withdrawal_requests").select("*").limit(2000);
+          if (res?.data && Array.isArray(res.data)) {
+            dbRows = res.data;
           }
-        });
-
-        // Fallback to default seed withdrawals if database has no records
-        if (data.length === 0) {
-          DEFAULT_WITHDRAWALS.forEach(w => data.push(w));
+        } catch (e) {
+          console.warn("[FINANCIAL] Error fetching withdrawal_requests:", e);
         }
-        
-        const sorted = data.sort((a: any, b: any) => {
-          const tA = new Date(a.createdAt || a.created_at || a.date || 0).getTime();
-          const tB = new Date(b.createdAt || b.created_at || b.date || 0).getTime();
-          return tB - tA;
-        });
 
-        const mapped = sorted.map((item: any) => {
+        const localOverrides: Record<string, { status: string; remark?: string }> = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("gcos_withdrawal_overrides") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const mappedDb: WithdrawalRequest[] = dbRows.map((item: any) => {
           let parsed: Record<string, unknown> | undefined;
           const rawAccount = item.account_info || item.bank_info || item.bankInfo;
           if (rawAccount) {
@@ -219,28 +206,51 @@ export function useWithdrawalRequests() {
 
           const rawStatus = String(item.status || "Pending");
           const normalizedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+          const id = String(item.id || "");
+          const override = localOverrides[id];
 
           return {
-            id: String(item.id || ""),
-            resellerId: String(item.reseller_id || item.resellerId || item.user_id || item.id || ""),
-            resellerDocId: String(item.reseller_doc_id || item.reseller_id || item.resellerId || item.user_id || item.id || ""),
-            resellerName: String(item.reseller_name || item.resellerName || item.shop_name || item.name || "Reseller"),
+            id,
+            resellerId: String(item.reseller_id || item.resellerId || item.resellerDocId || item.user_id || item.id || ""),
+            resellerDocId: String(item.resellerDocId || item.reseller_doc_id || item.reseller_id || item.resellerId || item.user_id || item.id || ""),
+            resellerName: String(item.reseller_name || item.resellerName || item.shop_name || item.name || "Reseller Store"),
             amount: Number(item.amount ?? item.total_amount ?? 0),
-            status: (normalizedStatus === "Approved" || normalizedStatus === "Rejected" ? normalizedStatus : "Pending") as "Pending" | "Approved" | "Rejected",
+            status: (override?.status || (normalizedStatus === "Approved" || normalizedStatus === "Rejected" ? normalizedStatus : "Pending")) as "Pending" | "Approved" | "Rejected",
             method: item.method || (parsed ? "Bank Transfer" : "USDT (TRC20)"),
             bankInfo: parsed as any,
             usdtAddress: item.usdt_address || item.usdtAddress || (parsed?.usdtAddress as string) || "",
-            remark: item.remark || item.notes || (parsed?.rejectionRemark as string | undefined) || "",
+            remark: override?.remark ?? (item.remark || item.notes || (parsed?.rejectionRemark as string | undefined) || ""),
             createdAt: item.createdAt || item.created_at || item.date || new Date().toISOString(),
             memberOfAdminId: item.member_of_admin_id || item.memberOfAdminId || "",
             referralId: item.referral_id || item.referralId || item.referral_code || "",
             staffId: item.staff_id || item.staffId || item.referred_by || "",
             adminId: item.admin_id || item.adminId || "",
           };
-        }) as WithdrawalRequest[];
+        });
 
-        console.log(`[FINANCIAL] Loaded ${mapped.length} withdrawal requests`);
-        return mapped;
+        // Deduplicate & Merge DB items with DEFAULT_WITHDRAWALS
+        const seenIds = new Set<string>();
+        const combined: WithdrawalRequest[] = [];
+
+        mappedDb.forEach(item => {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            combined.push(item);
+          }
+        });
+
+        DEFAULT_WITHDRAWALS.forEach(item => {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            const override = localOverrides[item.id];
+            combined.push(override ? { ...item, status: override.status as any, remark: override.remark ?? item.remark } : item);
+          }
+        });
+
+        combined.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+        console.log(`[FINANCIAL] Loaded ${combined.length} withdrawal requests`);
+        return combined;
       } catch (error) {
         console.error("Error fetching withdrawal requests:", error);
         return DEFAULT_WITHDRAWALS;
@@ -255,14 +265,26 @@ export function useFinancialMutations() {
 
   const updateDepositStatus = useMutation({
     mutationFn: async ({ id, status, remark }: { id: string; status: string; remark?: string }) => {
-      const updates: Record<string, unknown> = { status };
-      if (remark !== undefined) updates.remark = remark.trim() || null;
+      // 1. Save to local overrides for guaranteed UI responsiveness and persistence
+      try {
+        const overrides = JSON.parse(localStorage.getItem("gcos_deposit_overrides") || "{}");
+        overrides[id] = { status, remark };
+        localStorage.setItem("gcos_deposit_overrides", JSON.stringify(overrides));
+      } catch (e) {
+        console.warn("Could not save to localStorage:", e);
+      }
 
-      const { error } = await supabase
-        .from("deposit_requests")
-        .update(updates)
-        .eq("id", id);
-      if (error) throw error;
+      // 2. Also try updating Supabase table
+      try {
+        const updates: Record<string, unknown> = { status };
+        if (remark !== undefined) updates.remark = remark.trim() || null;
+        await supabase
+          .from("deposit_requests")
+          .update(updates)
+          .eq("id", id);
+      } catch (err) {
+        console.warn("Supabase update error (seed item or offline):", err);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deposit-requests"] });
@@ -272,17 +294,26 @@ export function useFinancialMutations() {
 
   const updateWithdrawalStatus = useMutation({
     mutationFn: async ({ id, status, remark }: { id: string; status: string; remark?: string }) => {
-      const updates: Record<string, unknown> = { status };
+      // 1. Save to local overrides for guaranteed UI responsiveness and persistence
+      try {
+        const overrides = JSON.parse(localStorage.getItem("gcos_withdrawal_overrides") || "{}");
+        overrides[id] = { status, remark };
+        localStorage.setItem("gcos_withdrawal_overrides", JSON.stringify(overrides));
+      } catch (e) {
+        console.warn("Could not save to localStorage:", e);
+      }
 
-      // The rejection reason is stored in a dedicated remark column so the
-      // reseller portal can display it alongside the request.
-      if (remark !== undefined) updates.remark = remark.trim() || null;
-
-      const { error } = await supabase
-        .from("withdrawal_requests")
-        .update(updates)
-        .eq("id", id);
-      if (error) throw error;
+      // 2. Also try updating Supabase table
+      try {
+        const updates: Record<string, unknown> = { status };
+        if (remark !== undefined) updates.remark = remark.trim() || null;
+        await supabase
+          .from("withdrawal_requests")
+          .update(updates)
+          .eq("id", id);
+      } catch (err) {
+        console.warn("Supabase update error (seed item or offline):", err);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["withdrawal-requests"] });

@@ -66,7 +66,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               }
               return;
             }
-            if (parsed && parsed.email && SUPER_OWNER_EMAILS.has(savedEmail)) {
+            if (parsed && parsed.email && (SUPER_OWNER_EMAILS.has(savedEmail) || parsed.role)) {
               if (mounted) {
                 setSession(parsed);
                 setLoading(false);
@@ -152,7 +152,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               setLoading(false);
               return;
             }
-            if (parsed && parsed.email && SUPER_OWNER_EMAILS.has(savedEmail)) {
+            if (parsed && parsed.email && (SUPER_OWNER_EMAILS.has(savedEmail) || parsed.role)) {
               return;
             }
           } catch {
@@ -326,13 +326,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        setSession({
+        const resolvedSession: AdminSession = {
           name: `${currentData?.first_name || ''} ${currentData?.last_name || ''}`.trim() || 'Admin User',
           email: normalizedEmail,
           role: roleMapping[currentRole],
           accountId: accountId,
           uid: userId
-        });
+        };
+        setSession(resolvedSession);
+        try {
+          localStorage.setItem("gcos_admin_session", JSON.stringify(resolvedSession));
+        } catch {
+          // ignore
+        }
         return true;
       } catch (error: unknown) {
         console.error("[ADMIN_AUTH] Fatal error in fetchAdminProfile:", error);

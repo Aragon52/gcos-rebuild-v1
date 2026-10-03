@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useAdminAccess } from "@/hooks/use-admin-access";
+import { useAdminAccess, ADMIN_UUID_TO_ACCOUNT } from "@/hooks/use-admin-access";
 import { useUnifiedResellers } from "@/lib/unified-hooks";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_ORDERS } from "@/data/default-seed-data";
@@ -86,6 +86,10 @@ export default function ARSTrackOrdersPage() {
   const { toast } = useToast();
   const { canSeeAll, hasAccessToReseller } = useAdminAccess();
   const resellers = useUnifiedResellers();
+  const resellersRef = useRef(resellers);
+  useEffect(() => {
+    resellersRef.current = resellers;
+  }, [resellers]);
 
   const allowedResellers = useMemo(() => {
     if (canSeeAll) return resellers;
@@ -105,13 +109,81 @@ export default function ARSTrackOrdersPage() {
     return ids;
   }, [allowedResellers]);
 
-  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>(() => {
+    try {
+      let localOrders: any[] = [];
+      const stored = typeof window !== "undefined" ? localStorage.getItem("gcos_orders") : null;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) localOrders = parsed;
+      }
+      const seenIds = new Set<string>();
+      const combined: any[] = [];
+
+      localOrders.forEach(item => {
+        const id = String(item.id || item.order_id || item.orderId || item.order_number || `${item.reseller_id}-${item.created_at}`);
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          combined.push(item);
+        }
+      });
+
+      DEFAULT_ORDERS.forEach(item => {
+        const id = String(item.id || item.order_id || (item as any).orderId || (item as any).order_number);
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          combined.push(item);
+        }
+      });
+
+      combined.sort((a, b) => {
+        const tA = new Date(a.created_at || a.createdAt || a.date || 0).getTime();
+        const tB = new Date(b.created_at || b.createdAt || b.date || 0).getTime();
+        return tB - tA;
+      });
+
+      return combined.map(o => {
+        let statusStr = String(o.status || "Pending");
+        statusStr = statusStr.charAt(0).toUpperCase() + statusStr.slice(1).toLowerCase();
+        const id = String(o.id || "");
+        const rawOrderId = o.order_id || o.order_number || o.orderId || o.id;
+        const orderId = rawOrderId ? String(rawOrderId) : (id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "N/A");
+        const rawResellerId = String(o.reseller_id || o.resellerId || o.user_id || o.resellerDocId || "");
+
+        return {
+          id: id,
+          orderId: orderId,
+          resellerName: o.reseller_name || o.resellerName || o.customer_name || "Reseller Store",
+          resellerId: rawResellerId || "N/A",
+          resellerNumericId: Number(o.resellerNumericId || o.reseller_numeric_id || 0),
+          humanResellerId: o.human_reseller_id || o.humanResellerId || (o.resellerNumericId ? `GRS${o.resellerNumericId}` : ""),
+          staffUsername: o.staff_username || o.staffUsername || "System",
+          adminName: o.admin_username || o.adminName || "System",
+          productCount: Number(o.products_count || o.product_count || o.productCount || o.item_count || 1),
+          itemCount: Number(o.items_count || o.item_count || o.itemCount || o.items || 1),
+          totalCost: Number(o.total_cost || o.totalCost || o.total_amount || o.total || o.amount || 0),
+          serviceCost: Number(o.service_cost || o.serviceCost || 0),
+          profit: Number(o.profit || o.profits || 0),
+          status: statusStr as OrderStatus,
+          focused: Boolean(o.focused),
+          createdAt: o.created_at || o.createdAt || o.date || new Date().toISOString(),
+          pickedUpAt: o.picked_up_at || o.pickedUpAt,
+          completedAt: o.completed_at || o.completedAt,
+          referralId: o.referral_id || o.referralId || "",
+          referredBy: o.referred_by_staff_id || o.referredBy || "",
+          memberOfAdminId: o.member_of_admin_id || o.memberOfAdminId || "",
+        };
+      });
+    } catch {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [fetchLimit, setFetchLimit] = useState(PAGE_SIZE_FETCH);
 
-  const mapOrderData = (data: any) => {
+  const mapOrderData = useCallback((data: any) => {
     let statusStr = String(data.status || "Pending");
     statusStr = statusStr.charAt(0).toUpperCase() + statusStr.slice(1).toLowerCase();
     
@@ -121,7 +193,8 @@ export default function ARSTrackOrdersPage() {
     const rawResellerId = String(data.reseller_id || data.resellerId || data.user_id || data.resellerDocId || "");
     
     // Cross-match with unified reseller list
-    const matchedReseller = resellers.find(r => 
+    const currentResellers = resellersRef.current || [];
+    const matchedReseller = currentResellers.find(r => 
       r.id === rawResellerId || 
       String(r.resellerId) === rawResellerId || 
       `GRS${r.resellerId}` === rawResellerId ||
@@ -158,62 +231,142 @@ export default function ARSTrackOrdersPage() {
       referredBy: referredBy,
       memberOfAdminId: memberOfAdminId,
     };
-  };
+  }, []);
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    const [res1, res2, res3] = await Promise.all([
-      supabase.from("orders").select("*").limit(fetchLimit),
-      supabase.from("reseller_orders").select("*").limit(fetchLimit).catch(() => ({ data: [] })),
-      supabase.from("ars_orders").select("*").limit(fetchLimit).catch(() => ({ data: [] }))
-    ]);
-    
-    const combined = [
-      ...(res1.data || []),
-      ...(res2.data || []),
-      ...(res3.data || [])
-    ];
+  const [adminTeamFilter, setAdminTeamFilter] = useState<string>("all");
 
-    const seenIds = new Set<string>();
-    const data: any[] = [];
-    combined.forEach(item => {
-      const id = String(item.id || item.order_id || item.order_number || `${item.reseller_id}-${item.created_at}`);
-      if (!seenIds.has(id)) {
-        seenIds.add(id);
-        data.push(item);
+  const fetchOrders = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    }
+    try {
+      let dbOrders: any[] = [];
+      try {
+        const dbPromise = supabase.from("orders").select("*").limit(fetchLimit);
+        const timeoutPromise = new Promise<{ data: any[] }>((resolve) =>
+          setTimeout(() => resolve({ data: [] }), 1500)
+        );
+        const res = (await Promise.race([dbPromise, timeoutPromise])) as any;
+        if (res?.data && Array.isArray(res.data)) {
+          dbOrders = res.data;
+        }
+      } catch (err) {
+        console.warn("[ORDERS] Error fetching orders from DB:", err);
       }
-    });
 
-    if (data.length === 0) {
-      DEFAULT_ORDERS.forEach(item => data.push(item));
+      // Read local storage for newly created orders
+      let localOrders: any[] = [];
+      try {
+        const stored = localStorage.getItem("gcos_orders");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) localOrders = parsed;
+        }
+      } catch (e) {
+        console.warn("[ORDERS] Local orders parse warning:", e);
+      }
+
+      const seenIds = new Set<string>();
+      const combined: any[] = [];
+
+      // 1. Add locally created orders first (instant preview for new orders)
+      localOrders.forEach(item => {
+        const id = String(item.id || item.order_id || item.orderId || item.order_number || `${item.reseller_id}-${item.created_at}`);
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          combined.push(item);
+        }
+      });
+
+      // 2. Add DB orders
+      dbOrders.forEach(item => {
+        const id = String(item.id || item.order_id || item.orderId || item.order_number || `${item.reseller_id}-${item.created_at}`);
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          combined.push(item);
+        }
+      });
+
+      // 3. Add DEFAULT_ORDERS (historical & seed)
+      DEFAULT_ORDERS.forEach(item => {
+        const id = String(item.id || item.order_id || (item as any).orderId || (item as any).order_number);
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          combined.push(item);
+        }
+      });
+
+      combined.sort((a, b) => {
+        const tA = new Date(a.created_at || a.createdAt || a.date || 0).getTime();
+        const tB = new Date(b.created_at || b.createdAt || b.date || 0).getTime();
+        return tB - tA;
+      });
+
+      console.log(`[ORDERS] Loaded ${combined.length} total orders for track orders page`);
+      setOrders(combined.map(mapOrderData) as unknown as OrderRecord[]);
+      setHasMore(dbOrders.length >= fetchLimit);
+    } catch (error) {
+      console.error("[ORDERS] Unexpected error loading orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchLimit, mapOrderData]);
+
+  // Realtime & custom event listeners
+  useEffect(() => {
+    fetchOrders(true);
+
+    const handleLocalUpdate = () => {
+      fetchOrders(true);
+    };
+    window.addEventListener("gcos_orders_updated", handleLocalUpdate);
+
+    let channel: any;
+    try {
+      channel = supabase
+        .channel('orders_realtime_feed')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+          fetchOrders(true);
+        })
+        .subscribe();
+    } catch (e) {
+      console.warn("Realtime channel subscription error:", e);
     }
 
-    data.sort((a, b) => {
-      const tA = new Date(a.created_at || a.createdAt || a.date || 0).getTime();
-      const tB = new Date(b.created_at || b.createdAt || b.date || 0).getTime();
-      return tB - tA;
-    });
-
-    console.log(`[ORDERS] Loaded ${data.length} total orders for track orders page`);
-    setOrders(data.map(mapOrderData) as unknown as OrderRecord[]);
-    setHasMore(data.length >= fetchLimit);
-    setLoading(false);
-  }, [fetchLimit, resellers]);
-
-  useEffect(() => {
-    fetchOrders();
-
-    const channel = supabase
-      .channel('orders_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        fetchOrders();
-      })
-      .subscribe();
-
     return () => {
-      supabase.removeChannel(channel);
+      window.removeEventListener("gcos_orders_updated", handleLocalUpdate);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [fetchOrders]);
+
+  // Keep orders enriched when unified resellers finishes loading
+  useEffect(() => {
+    if (resellers && resellers.length > 0) {
+      setOrders(prev => prev.map(o => {
+        const rId = String(o.resellerId || "");
+        const matched = resellers.find(r => 
+          r.id === rId || 
+          String(r.resellerId) === rId || 
+          `GRS${r.resellerId}` === rId ||
+          (o.resellerNumericId && r.resellerId === o.resellerNumericId) ||
+          (rId.startsWith('GRS') && String(r.resellerId) === rId.slice(3))
+        );
+        if (matched) {
+          return {
+            ...o,
+            resellerName: o.resellerName && o.resellerName !== "Reseller Store" ? o.resellerName : (matched.shopName || matched.name),
+            staffUsername: o.staffUsername && o.staffUsername !== "System" ? o.staffUsername : (matched.staffName || "System"),
+            adminName: o.adminName && o.adminName !== "System" ? o.adminName : (matched.adminMember || "System"),
+            memberOfAdminId: o.memberOfAdminId || matched.memberOfAdminId,
+            referralId: o.referralId || matched.referralId,
+            humanResellerId: o.humanResellerId || (matched.resellerId ? `GRS${matched.resellerId}` : ""),
+            resellerNumericId: o.resellerNumericId || matched.resellerId,
+          };
+        }
+        return o;
+      }));
+    }
+  }, [resellers]);
 
   const loadMore = useCallback(() => {
     if (!hasMore || loadingMore) return;
@@ -232,20 +385,42 @@ export default function ARSTrackOrdersPage() {
   /* ─── Filtering ─── */
   const filtered = useMemo(() => {
     let list = orders.filter((o) => {
-      if (canSeeAll) return true;
-      const rId = String(o.resellerId);
-      return allowedResellerIds.has(rId) || 
-             allowedResellerIds.has(`GRS${rId}`) || 
-             (rId.startsWith('GRS') && allowedResellerIds.has(rId.slice(3)));
+      // 1. Role-based inheritance access: Non-owner admins/staff only see their allowed orders
+      if (!canSeeAll) {
+        const rId = String(o.resellerId || "");
+        const rNum = o.resellerNumericId ? String(o.resellerNumericId) : "";
+        const hasAccess = 
+          allowedResellerIds.has(rId) || 
+          (rNum && (allowedResellerIds.has(rNum) || allowedResellerIds.has(`GRS${rNum}`))) ||
+          allowedResellerIds.has(`GRS${rId}`) || 
+          (rId.startsWith('GRS') && allowedResellerIds.has(rId.slice(3))) ||
+          hasAccessToReseller(o);
+        
+        if (!hasAccess) return false;
+      }
+
+      // 2. Admin Team dropdown filter
+      if (adminTeamFilter !== "all") {
+        const oAdmin = `${o.adminName || ""} ${o.memberOfAdminId || ""}`.toUpperCase();
+        const mappedAdmin = ADMIN_UUID_TO_ACCOUNT[o.memberOfAdminId || ""]?.toUpperCase() || "";
+        const target = adminTeamFilter.toUpperCase();
+        if (!oAdmin.includes(target) && !mappedAdmin.includes(target)) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     if (statusFilter !== "all") list = list.filter((o) => o.status === statusFilter);
     if (resellerSearch.trim()) {
-      const q = resellerSearch.toLowerCase();
-      list = list.filter((o) => 
-        (o.resellerId || "").toLowerCase().includes(q) || 
-        (o.resellerNumericId && String(o.resellerNumericId).toLowerCase().includes(q))
-      );
+      const q = resellerSearch.toLowerCase().trim();
+      list = list.filter((o) => {
+        const numId = o.resellerNumericId ? `grs${o.resellerNumericId}` : "";
+        const humanId = (o.humanResellerId || "").toLowerCase();
+        const rawId = (o.resellerId || "").toLowerCase();
+        return numId.includes(q) || humanId.includes(q) || rawId.includes(q);
+      });
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -254,11 +429,12 @@ export default function ARSTrackOrdersPage() {
           (o.orderId || "").toLowerCase().includes(q) ||
           (o.resellerName || "").toLowerCase().includes(q) ||
           (o.staffUsername || "").toLowerCase().includes(q) ||
-          (o.adminName || "").toLowerCase().includes(q)
+          (o.adminName || "").toLowerCase().includes(q) ||
+          (o.humanResellerId || "").toLowerCase().includes(q)
       );
     }
     return list;
-  }, [orders, search, resellerSearch, statusFilter, canSeeAll, allowedResellerIds]);
+  }, [orders, search, resellerSearch, statusFilter, adminTeamFilter, canSeeAll, allowedResellerIds, hasAccessToReseller]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -510,7 +686,7 @@ export default function ARSTrackOrdersPage() {
 
         {/* Status filter */}
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[170px] bg-background">
+          <SelectTrigger className="w-[160px] bg-background">
             <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
             <SelectValue placeholder="Filter status" />
           </SelectTrigger>
@@ -523,6 +699,18 @@ export default function ARSTrackOrdersPage() {
             <SelectItem value="Completed">Completed</SelectItem>
             <SelectItem value="Cancelled">Cancelled</SelectItem>
             <SelectItem value="Archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Admin Team Filter */}
+        <Select value={adminTeamFilter} onValueChange={(v) => { setAdminTeamFilter(v); setPage(1); }}>
+          <SelectTrigger className="w-[160px] bg-background">
+            <SelectValue placeholder="Admin Team" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Admin Teams</SelectItem>
+            <SelectItem value="GA01">GA01 Team</SelectItem>
+            <SelectItem value="GA02">GA02 Team</SelectItem>
           </SelectContent>
         </Select>
 

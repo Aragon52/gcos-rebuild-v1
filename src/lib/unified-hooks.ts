@@ -113,6 +113,23 @@ export function useUnifiedResellers() {
         const adminsNameMap = new Map<string, string>();
         const adminsIdToAccountIdMap = new Map<string, string>();
         
+        // Seed default system mappings so DB UUIDs map to GA01 / GA02
+        const SYSTEM_ADMIN_MAPPINGS: Record<string, { accountId: string; name: string }> = {
+          "263f859e-2088-444b-b4aa-93a009c9c844": { accountId: "GA01", name: "Administrator GA01" },
+          "53584982-2157-4c20-818f-39e55167160d": { accountId: "GA01", name: "Administrator GA01" },
+          "b9406f46-f7a7-4e66-9b69-a3a897c69c90": { accountId: "GA01", name: "Administrator GA01" },
+          "0abea086-8093-4308-badc-3ee94c285cd6": { accountId: "GA02", name: "Administrator GA02" },
+          "f54eaf72-d60c-40cb-9c49-e91d12247ff1": { accountId: "GA02", name: "Administrator GA02" },
+          "adm-01": { accountId: "GA01", name: "Administrator GA01" },
+          "adm-02": { accountId: "GA02", name: "Administrator GA02" },
+          "GA01": { accountId: "GA01", name: "Administrator GA01" },
+          "GA02": { accountId: "GA02", name: "Administrator GA02" },
+        };
+        for (const [id, info] of Object.entries(SYSTEM_ADMIN_MAPPINGS)) {
+          adminsNameMap.set(id, info.name);
+          adminsIdToAccountIdMap.set(id, info.accountId);
+        }
+        
         admins.forEach(a => {
           const name = a.name || a.username || a.account_id || a.id;
           if (a.id) {
@@ -277,16 +294,23 @@ export function useUnifiedResellers() {
           };
         });
 
+        DEFAULT_RESELLERS.forEach(dr => {
+          if (!allResellerIds.has(String(dr.id))) {
+            resellers.push(dr);
+            allResellerIds.add(String(dr.id));
+          }
+        });
+
         console.log(`[UNIFIED_HOOKS] Successfully resolved ${resellers.length} total resellers for UI`);
         return resellers;
       } catch (error) {
         console.error("Error in useUnifiedResellers queryFn:", error);
-        return [];
+        return DEFAULT_RESELLERS;
       }
     },
     staleTime: 5000, 
     refetchOnWindowFocus: true,
-    placeholderData: (previousData: Reseller[] | undefined) => previousData,
+    placeholderData: (previousData: Reseller[] | undefined) => previousData || DEFAULT_RESELLERS,
   });
 
   return data;
