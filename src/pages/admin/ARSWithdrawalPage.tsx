@@ -33,7 +33,7 @@ const PAGE_SIZE = 10;
 export default function ARSWithdrawalPage() {
   const { toast } = useToast();
   const resellers = useUnifiedResellers();
-  const { canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds } = useAdminAccess();
+  const { canSeeAll, hasAccessToReseller } = useAdminAccess();
   const { data: requests = [], isLoading } = useWithdrawalRequests();
   const { updateWithdrawalStatus } = useFinancialMutations();
 
@@ -57,17 +57,8 @@ export default function ARSWithdrawalPage() {
         res.email === r.resellerId
       );
       
-      const referralId = r.referralId || reseller?.referralId;
-      const memberOfAdminId = r.memberOfAdminId || reseller?.memberOfAdminId;
-      const referredBy = r.staffId || reseller?.referredBy;
-
-      if ((referralId && allowedReferralIds.includes(referralId)) ||
-          (memberOfAdminId && allowedAdminIds.includes(memberOfAdminId)) ||
-          (referredBy && (allowedStaffIds.includes(String(referredBy)) || allowedStaffDocIds.includes(String(referredBy))))) {
-        return true;
-      }
-      
-      return false;
+      if (reseller && hasAccessToReseller(reseller)) return true;
+      return hasAccessToReseller(r);
     });
 
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
@@ -99,7 +90,7 @@ export default function ARSWithdrawalPage() {
       );
     }
     return list;
-  }, [requests, search, statusFilter, canSeeAll, allowedReferralIds, allowedAdminIds, allowedStaffIds, allowedStaffDocIds, resellers]);
+  }, [requests, search, statusFilter, canSeeAll, hasAccessToReseller, resellers]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

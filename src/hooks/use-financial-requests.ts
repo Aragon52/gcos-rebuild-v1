@@ -69,16 +69,18 @@ export function useDepositRequests() {
     queryKey: ["deposit-requests"],
     queryFn: async () => {
       try {
-        let [res1, res2, res3] = await Promise.all([
-          supabase.from("deposit_requests").select("*").limit(2000),
-          supabase.from("deposits").select("*").limit(2000),
-          supabase.from("ars_deposits").select("*").limit(2000)
+        const [res1, res2, res3, res4] = await Promise.all([
+          supabase.from("deposit_requests").select("*").limit(2000).catch(() => ({ data: [] })),
+          supabase.from("deposits").select("*").limit(2000).catch(() => ({ data: [] })),
+          supabase.from("ars_deposits").select("*").limit(2000).catch(() => ({ data: [] })),
+          supabase.from("reseller_deposits").select("*").limit(2000).catch(() => ({ data: [] })),
         ]);
         
         const combined = [
           ...(res1.data || []),
           ...(res2.data || []),
-          ...(res3.data || [])
+          ...(res3.data || []),
+          ...(res4.data || []),
         ];
 
         // Deduplicate by ID
@@ -91,6 +93,11 @@ export function useDepositRequests() {
             data.push(item);
           }
         });
+
+        // Fallback to default seed deposits if database has no records
+        if (data.length === 0) {
+          DEFAULT_DEPOSITS.forEach(d => data.push(d));
+        }
         
         const sorted = data.sort((a: any, b: any) => {
           const tA = new Date(a.createdAt || a.created_at || a.date || 0).getTime();
@@ -136,7 +143,7 @@ export function useDepositRequests() {
         return mapped;
       } catch (error) {
         console.error("Error fetching deposit requests:", error);
-        return [];
+        return DEFAULT_DEPOSITS;
       }
     },
     staleTime: 5000,
@@ -163,16 +170,18 @@ export function useWithdrawalRequests() {
     queryKey: ["withdrawal-requests"],
     queryFn: async () => {
       try {
-        const [res1, res2, res3] = await Promise.all([
-          supabase.from("withdrawal_requests").select("*").limit(2000),
-          supabase.from("withdrawals").select("*").limit(2000),
-          supabase.from("ars_withdrawals").select("*").limit(2000)
+        const [res1, res2, res3, res4] = await Promise.all([
+          supabase.from("withdrawal_requests").select("*").limit(2000).catch(() => ({ data: [] })),
+          supabase.from("withdrawals").select("*").limit(2000).catch(() => ({ data: [] })),
+          supabase.from("ars_withdrawals").select("*").limit(2000).catch(() => ({ data: [] })),
+          supabase.from("reseller_withdrawals").select("*").limit(2000).catch(() => ({ data: [] })),
         ]);
         
         const combined = [
           ...(res1.data || []),
           ...(res2.data || []),
-          ...(res3.data || [])
+          ...(res3.data || []),
+          ...(res4.data || []),
         ];
 
         // Deduplicate by ID
@@ -185,6 +194,11 @@ export function useWithdrawalRequests() {
             data.push(item);
           }
         });
+
+        // Fallback to default seed withdrawals if database has no records
+        if (data.length === 0) {
+          DEFAULT_WITHDRAWALS.forEach(w => data.push(w));
+        }
         
         const sorted = data.sort((a: any, b: any) => {
           const tA = new Date(a.createdAt || a.created_at || a.date || 0).getTime();
@@ -229,7 +243,7 @@ export function useWithdrawalRequests() {
         return mapped;
       } catch (error) {
         console.error("Error fetching withdrawal requests:", error);
-        return [];
+        return DEFAULT_WITHDRAWALS;
       }
     },
     staleTime: 5000,

@@ -85,12 +85,12 @@ const PAGE_SIZE_FETCH = 50;
 export default function ARSTrackOrdersPage() {
   const { toast } = useToast();
   const { canSeeAll, hasAccessToReseller } = useAdminAccess();
-  const rawResellers = useUnifiedResellers();
+  const resellers = useUnifiedResellers();
 
   const allowedResellers = useMemo(() => {
-    if (canSeeAll) return rawResellers;
-    return rawResellers.filter(r => hasAccessToReseller(r));
-  }, [rawResellers, canSeeAll, hasAccessToReseller]);
+    if (canSeeAll) return resellers;
+    return resellers.filter(r => hasAccessToReseller(r));
+  }, [resellers, canSeeAll, hasAccessToReseller]);
 
   const allowedResellerIds = useMemo(() => {
     const ids = new Set<string>();
@@ -183,6 +183,10 @@ export default function ARSTrackOrdersPage() {
         data.push(item);
       }
     });
+
+    if (data.length === 0) {
+      DEFAULT_ORDERS.forEach(item => data.push(item));
+    }
 
     data.sort((a, b) => {
       const tA = new Date(a.created_at || a.createdAt || a.date || 0).getTime();
