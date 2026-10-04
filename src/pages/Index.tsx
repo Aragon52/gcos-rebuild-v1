@@ -29,15 +29,17 @@ export default function Index() {
     "bags & backpacks"
   ];
 
+  const safeCategories = (categories || []).filter(c => Boolean(c && c.name && c.slug));
+
   // Filter categories that match the target names (case-insensitive)
-  const matchedCategories = categories.filter(cat => 
+  const matchedCategories = safeCategories.filter(cat => 
     targetCategoryNames.some(target => cat.name.toLowerCase().includes(target))
   );
 
   // If we still didn't find enough matches, pad with other categories
   const topCategories = matchedCategories.length >= 5 
     ? matchedCategories.slice(0, 5) 
-    : [...matchedCategories, ...categories.filter(c => !matchedCategories.some(mc => mc.id === c.id))].slice(0, 5);
+    : [...matchedCategories, ...safeCategories.filter(c => !matchedCategories.some(mc => mc.id === c.id))].slice(0, 5);
 
 
   const gradients = [

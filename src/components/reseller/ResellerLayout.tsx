@@ -17,13 +17,10 @@ import DepositAlertBanner from "./DepositAlertBanner";
 import { useDepositAlerts } from "@/hooks/use-deposit-alerts";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 
-const PUBLIC_PATHS_CANONICAL = ["/reseller/login", "/reseller/register"];
-const PUBLIC_PATHS = (() => {
-  const mapped = PUBLIC_PATHS_CANONICAL.map(p => resellerPath(p));
-  return mapped;
-})();
+const PUBLIC_PATHS_CANONICAL = ["/reseller/login", "/reseller/register", "/login", "/register"];
 
 export default function ResellerLayout({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const { reseller, loading } = useReseller();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -34,12 +31,20 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
   // Real-time listener for deposit status approvals and balance updates
   useDepositAlerts();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isPublic = useMemo(() => {
     const norm = pathname.replace(/\/$/, "") || "/";
-    return PUBLIC_PATHS.some(p => {
-      const pNorm = p.replace(/\/$/, "") || "/";
-      return norm === pNorm;
-    });
+    return (
+      norm === "/reseller/login" ||
+      norm === "/reseller/register" ||
+      norm === "/login" ||
+      norm === "/register" ||
+      norm.endsWith("/login") ||
+      norm.endsWith("/register")
+    );
   }, [pathname]);
 
   const handleSupportClick = () => {
@@ -48,7 +53,7 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
 
   // Online status heartbeat
   useEffect(() => {
-    if (!reseller?.id || isPublic) return;
+    if (!reseller?.id || isPublic || !mounted) return;
 
     const setOnline = async (online: boolean) => {
       try {
@@ -90,9 +95,9 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
     return () => {
       setOnline(false);
     };
-  }, [reseller?.id, reseller?.firstName, reseller?.lastName, isPublic]);
+  }, [reseller?.id, reseller?.firstName, reseller?.lastName, isPublic, mounted]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
