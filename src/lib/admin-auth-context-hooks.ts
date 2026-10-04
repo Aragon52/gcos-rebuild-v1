@@ -36,6 +36,7 @@ export const STAFF_ALLOWED_PATHS = new Set([
 
 export const ADMIN_BLOCKED_PATHS = new Set([
   "/admin/sla/ownership",
+  "/admin/security",
 ]);
 
 // Management & Financing paths that Staff cannot access

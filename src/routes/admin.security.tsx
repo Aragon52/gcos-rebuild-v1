@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { SecurityPage } from "@/pages/admin/AdminPlaceholderPages";
+import { AdminSecurityPage } from "@/pages/admin/AdminSecurityPage";
 
 export const Route = createFileRoute("/admin/security")({
   head: () => ({
     meta: [
-      { title: "Admin portal — GCOS" },
+      { title: "Security and sessions — GCOS admin" },
       { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
       { name: "googlebot", content: "noindex, nofollow, noarchive, nosnippet" },
     ],
@@ -14,5 +14,5 @@ export const Route = createFileRoute("/admin/security")({
 });
 
 function AdminSecurityRoutePage() {
-  return <AdminLayout><SecurityPage /></AdminLayout>;
+  return <AdminLayout><AdminSecurityPage /></AdminLayout>;
 }

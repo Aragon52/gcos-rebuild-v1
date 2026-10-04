@@ -562,15 +562,20 @@ export type Database = {
           member_of_admin_id: string | null
           payment_method: string | null
           pending_balance: number | null
+          phone: string | null
           product_limit: number | null
+          profile_picture: string | null
           referral_code: string | null
           referral_id: string | null
           referred_by_staff_id: string | null
           registration_date: string | null
           reseller_id: number | null
+          shop_hero_banner: string | null
+          shop_logo: string | null
           shop_name: string | null
           shop_slug: string | null
           star_rating: number | null
+          store_theme: string | null
           total_deposits: number | null
           total_earnings: number | null
           total_orders: number | null
@@ -595,15 +600,20 @@ export type Database = {
           member_of_admin_id?: string | null
           payment_method?: string | null
           pending_balance?: number | null
+          phone?: string | null
           product_limit?: number | null
+          profile_picture?: string | null
           referral_code?: string | null
           referral_id?: string | null
           referred_by_staff_id?: string | null
           registration_date?: string | null
           reseller_id?: number | null
+          shop_hero_banner?: string | null
+          shop_logo?: string | null
           shop_name?: string | null
           shop_slug?: string | null
           star_rating?: number | null
+          store_theme?: string | null
           total_deposits?: number | null
           total_earnings?: number | null
           total_orders?: number | null
@@ -628,15 +638,20 @@ export type Database = {
           member_of_admin_id?: string | null
           payment_method?: string | null
           pending_balance?: number | null
+          phone?: string | null
           product_limit?: number | null
+          profile_picture?: string | null
           referral_code?: string | null
           referral_id?: string | null
           referred_by_staff_id?: string | null
           registration_date?: string | null
           reseller_id?: number | null
+          shop_hero_banner?: string | null
+          shop_logo?: string | null
           shop_name?: string | null
           shop_slug?: string | null
           star_rating?: number | null
+          store_theme?: string | null
           total_deposits?: number | null
           total_earnings?: number | null
           total_orders?: number | null
@@ -993,6 +1008,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          phone: string | null
           role: string | null
         }
         Insert: {
@@ -1001,6 +1017,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          phone?: string | null
           role?: string | null
         }
         Update: {
@@ -1009,6 +1026,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          phone?: string | null
           role?: string | null
         }
         Relationships: []
@@ -1086,9 +1104,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_other_active_sessions: { Args: never; Returns: number }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_sla_user: { Args: { user_id: string }; Returns: boolean }
       is_staff: { Args: { user_id: string }; Returns: boolean }
+      list_admin_login_history: {
+        Args: { _limit?: number }
+        Returns: {
+          action: string
+          created_at: string
+          email: string
+          id: string
+          ip: string
+          role: string
+          user_id: string
+        }[]
+      }
+      list_admin_sessions: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          ip: string
+          is_current: boolean
+          last_active_at: string
+          role: string
+          session_id: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
+      revoke_admin_session: {
+        Args: { _session_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

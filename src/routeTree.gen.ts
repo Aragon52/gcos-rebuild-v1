@@ -10,12 +10,25 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ContactUsRouteImport } from './routes/contact-us'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as LegalRouteImport } from './routes/legal'
+import { Route as LegalNoticeRouteImport } from './routes/legal-notice'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as PaymentPolicyRouteImport } from './routes/payment-policy'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as ReturnsRefundsRouteImport } from './routes/returns-refunds'
 import { Route as ShippingPolicyRouteImport } from './routes/shipping-policy'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as VerificationComplianceRouteImport } from './routes/verification-compliance'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminSplatRouteImport } from './routes/admin.$'
@@ -43,6 +56,7 @@ import { Route as CartLoginRouteImport } from './routes/cart.login'
 import { Route as CartRegisterRouteImport } from './routes/cart.register'
 import { Route as CategoriesSlugRouteImport } from './routes/categories.$slug'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
+import { Route as ResellerIndexRouteImport } from './routes/reseller.index'
 import { Route as ResellerSplatRouteImport } from './routes/reseller.$'
 import { Route as ResellerAdBoostRouteImport } from './routes/reseller.ad-boost'
 import { Route as ResellerDashboardRouteImport } from './routes/reseller.dashboard'
@@ -80,13 +94,24 @@ import { Route as ApiAdminCreateResellerRouteImport } from './routes/api/admin/c
 import { Route as ApiAdminDeleteResellerRouteImport } from './routes/api/admin/delete-reseller'
 import { Route as ApiAdminDeleteStaffRouteImport } from './routes/api/admin/delete-staff'
 import { Route as ApiAdminResetResellerPasswordRouteImport } from './routes/api/admin/reset-reseller-password'
+import { Route as ApiAdminUpdateOrderStatusRouteImport } from './routes/api/admin/update-order-status'
 import { Route as ApiAdminVerifyAllRouteImport } from './routes/api/admin/verify-all'
-import { Route as ResellerProfileCustomizeRouteImport } from './routes/reseller.profile.customize'
+import { Route as ResellerProfileCustomizeRouteImport } from './routes/reseller.profile_.customize'
 import { Route as ApipublicResellerRequestResetRouteImport } from './routes/api/(public)/reseller/request-reset'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutUsRoute = AboutUsRouteImport.update({
+  id: '/about-us',
+  path: '/about-us',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountRoute = AccountRouteImport.update({
@@ -104,9 +129,54 @@ const CategoriesRoute = CategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactUsRoute = ContactUsRouteImport.update({
+  id: '/contact-us',
+  path: '/contact-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalNoticeRoute = LegalNoticeRouteImport.update({
+  id: '/legal-notice',
+  path: '/legal-notice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentPolicyRoute = PaymentPolicyRouteImport.update({
+  id: '/payment-policy',
+  path: '/payment-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReturnsRefundsRoute = ReturnsRefundsRouteImport.update({
@@ -117,6 +187,16 @@ const ReturnsRefundsRoute = ReturnsRefundsRouteImport.update({
 const ShippingPolicyRoute = ShippingPolicyRouteImport.update({
   id: '/shipping-policy',
   path: '/shipping-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
+  id: '/terms-of-service',
+  path: '/terms-of-service',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerificationComplianceRoute = VerificationComplianceRouteImport.update({
@@ -252,6 +332,11 @@ const CategoriesSlugRoute = CategoriesSlugRouteImport.update({
 const ProductsIdRoute = ProductsIdRouteImport.update({
   id: '/products/$id',
   path: '/products/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResellerIndexRoute = ResellerIndexRouteImport.update({
+  id: '/reseller/',
+  path: '/reseller/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResellerSplatRoute = ResellerSplatRouteImport.update({
@@ -444,6 +529,12 @@ const ApiAdminResetResellerPasswordRoute =
     path: '/api/admin/reset-reseller-password',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminUpdateOrderStatusRoute =
+  ApiAdminUpdateOrderStatusRouteImport.update({
+    id: '/api/admin/update-order-status',
+    path: '/api/admin/update-order-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminVerifyAllRoute = ApiAdminVerifyAllRouteImport.update({
   id: '/api/admin/verify-all',
   path: '/api/admin/verify-all',
@@ -451,9 +542,9 @@ const ApiAdminVerifyAllRoute = ApiAdminVerifyAllRouteImport.update({
 } as any)
 const ResellerProfileCustomizeRoute =
   ResellerProfileCustomizeRouteImport.update({
-    id: '/customize',
-    path: '/customize',
-    getParentRoute: () => ResellerProfileRoute,
+    id: '/reseller/profile_/customize',
+    path: '/reseller/profile/customize',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApipublicResellerRequestResetRoute =
   ApipublicResellerRequestResetRouteImport.update({
@@ -464,12 +555,25 @@ const ApipublicResellerRequestResetRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/about-us': typeof AboutUsRoute
   '/account': typeof AccountRoute
   '/cart': typeof CartRouteWithChildren
   '/categories': typeof CategoriesRouteWithChildren
+  '/contact': typeof ContactRoute
+  '/contact-us': typeof ContactUsRoute
+  '/faq': typeof FaqRoute
+  '/legal': typeof LegalRoute
+  '/legal-notice': typeof LegalNoticeRoute
   '/orders': typeof OrdersRoute
+  '/payment-policy': typeof PaymentPolicyRoute
+  '/privacy': typeof PrivacyRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/returns-refunds': typeof ReturnsRefundsRoute
   '/shipping-policy': typeof ShippingPolicyRoute
+  '/terms': typeof TermsRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/verification-compliance': typeof VerificationComplianceRoute
   '/admin/$': typeof AdminSplatRoute
   '/admin/admins': typeof AdminAdminsRoute
@@ -502,12 +606,13 @@ export interface FileRoutesByFullPath {
   '/reseller/login': typeof ResellerLoginRoute
   '/reseller/messages': typeof ResellerMessagesRoute
   '/reseller/orders': typeof ResellerOrdersRoute
-  '/reseller/profile': typeof ResellerProfileRouteWithChildren
+  '/reseller/profile': typeof ResellerProfileRoute
   '/reseller/register': typeof ResellerRegisterRoute
   '/reseller/share-target': typeof ResellerShareTargetRoute
   '/reseller/shop': typeof ResellerShopRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/reseller/': typeof ResellerIndexRoute
   '/admin/ach/customers': typeof AdminAchCustomersRoute
   '/admin/ach/financial': typeof AdminAchFinancialRoute
   '/admin/ars/deposit': typeof AdminArsDepositRoute
@@ -534,18 +639,32 @@ export interface FileRoutesByFullPath {
   '/api/admin/delete-reseller': typeof ApiAdminDeleteResellerRoute
   '/api/admin/delete-staff': typeof ApiAdminDeleteStaffRoute
   '/api/admin/reset-reseller-password': typeof ApiAdminResetResellerPasswordRoute
+  '/api/admin/update-order-status': typeof ApiAdminUpdateOrderStatusRoute
   '/api/admin/verify-all': typeof ApiAdminVerifyAllRoute
   '/reseller/profile/customize': typeof ResellerProfileCustomizeRoute
   '/api/reseller/request-reset': typeof ApipublicResellerRequestResetRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/about-us': typeof AboutUsRoute
   '/account': typeof AccountRoute
   '/cart': typeof CartRouteWithChildren
   '/categories': typeof CategoriesRouteWithChildren
+  '/contact': typeof ContactRoute
+  '/contact-us': typeof ContactUsRoute
+  '/faq': typeof FaqRoute
+  '/legal': typeof LegalRoute
+  '/legal-notice': typeof LegalNoticeRoute
   '/orders': typeof OrdersRoute
+  '/payment-policy': typeof PaymentPolicyRoute
+  '/privacy': typeof PrivacyRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/returns-refunds': typeof ReturnsRefundsRoute
   '/shipping-policy': typeof ShippingPolicyRoute
+  '/terms': typeof TermsRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/verification-compliance': typeof VerificationComplianceRoute
   '/admin/$': typeof AdminSplatRoute
   '/admin/admins': typeof AdminAdminsRoute
@@ -578,12 +697,13 @@ export interface FileRoutesByTo {
   '/reseller/login': typeof ResellerLoginRoute
   '/reseller/messages': typeof ResellerMessagesRoute
   '/reseller/orders': typeof ResellerOrdersRoute
-  '/reseller/profile': typeof ResellerProfileRouteWithChildren
+  '/reseller/profile': typeof ResellerProfileRoute
   '/reseller/register': typeof ResellerRegisterRoute
   '/reseller/share-target': typeof ResellerShareTargetRoute
   '/reseller/shop': typeof ResellerShopRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/reseller': typeof ResellerIndexRoute
   '/admin/ach/customers': typeof AdminAchCustomersRoute
   '/admin/ach/financial': typeof AdminAchFinancialRoute
   '/admin/ars/deposit': typeof AdminArsDepositRoute
@@ -610,6 +730,7 @@ export interface FileRoutesByTo {
   '/api/admin/delete-reseller': typeof ApiAdminDeleteResellerRoute
   '/api/admin/delete-staff': typeof ApiAdminDeleteStaffRoute
   '/api/admin/reset-reseller-password': typeof ApiAdminResetResellerPasswordRoute
+  '/api/admin/update-order-status': typeof ApiAdminUpdateOrderStatusRoute
   '/api/admin/verify-all': typeof ApiAdminVerifyAllRoute
   '/reseller/profile/customize': typeof ResellerProfileCustomizeRoute
   '/api/reseller/request-reset': typeof ApipublicResellerRequestResetRoute
@@ -617,12 +738,25 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/about-us': typeof AboutUsRoute
   '/account': typeof AccountRoute
   '/cart': typeof CartRouteWithChildren
   '/categories': typeof CategoriesRouteWithChildren
+  '/contact': typeof ContactRoute
+  '/contact-us': typeof ContactUsRoute
+  '/faq': typeof FaqRoute
+  '/legal': typeof LegalRoute
+  '/legal-notice': typeof LegalNoticeRoute
   '/orders': typeof OrdersRoute
+  '/payment-policy': typeof PaymentPolicyRoute
+  '/privacy': typeof PrivacyRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/returns-refunds': typeof ReturnsRefundsRoute
   '/shipping-policy': typeof ShippingPolicyRoute
+  '/terms': typeof TermsRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/verification-compliance': typeof VerificationComplianceRoute
   '/admin/$': typeof AdminSplatRoute
   '/admin/admins': typeof AdminAdminsRoute
@@ -655,12 +789,13 @@ export interface FileRoutesById {
   '/reseller/login': typeof ResellerLoginRoute
   '/reseller/messages': typeof ResellerMessagesRoute
   '/reseller/orders': typeof ResellerOrdersRoute
-  '/reseller/profile': typeof ResellerProfileRouteWithChildren
+  '/reseller/profile': typeof ResellerProfileRoute
   '/reseller/register': typeof ResellerRegisterRoute
   '/reseller/share-target': typeof ResellerShareTargetRoute
   '/reseller/shop': typeof ResellerShopRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/reseller/': typeof ResellerIndexRoute
   '/admin/ach/customers': typeof AdminAchCustomersRoute
   '/admin/ach/financial': typeof AdminAchFinancialRoute
   '/admin/ars/deposit': typeof AdminArsDepositRoute
@@ -687,20 +822,34 @@ export interface FileRoutesById {
   '/api/admin/delete-reseller': typeof ApiAdminDeleteResellerRoute
   '/api/admin/delete-staff': typeof ApiAdminDeleteStaffRoute
   '/api/admin/reset-reseller-password': typeof ApiAdminResetResellerPasswordRoute
+  '/api/admin/update-order-status': typeof ApiAdminUpdateOrderStatusRoute
   '/api/admin/verify-all': typeof ApiAdminVerifyAllRoute
-  '/reseller/profile/customize': typeof ResellerProfileCustomizeRoute
+  '/reseller/profile_/customize': typeof ResellerProfileCustomizeRoute
   '/api/(public)/reseller/request-reset': typeof ApipublicResellerRequestResetRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/about-us'
     | '/account'
     | '/cart'
     | '/categories'
+    | '/contact'
+    | '/contact-us'
+    | '/faq'
+    | '/legal'
+    | '/legal-notice'
     | '/orders'
+    | '/payment-policy'
+    | '/privacy'
+    | '/privacy-policy'
+    | '/refund-policy'
     | '/returns-refunds'
     | '/shipping-policy'
+    | '/terms'
+    | '/terms-of-service'
     | '/verification-compliance'
     | '/admin/$'
     | '/admin/admins'
@@ -739,6 +888,7 @@ export interface FileRouteTypes {
     | '/reseller/shop'
     | '/store/$slug'
     | '/admin/'
+    | '/reseller/'
     | '/admin/ach/customers'
     | '/admin/ach/financial'
     | '/admin/ars/deposit'
@@ -765,18 +915,32 @@ export interface FileRouteTypes {
     | '/api/admin/delete-reseller'
     | '/api/admin/delete-staff'
     | '/api/admin/reset-reseller-password'
+    | '/api/admin/update-order-status'
     | '/api/admin/verify-all'
     | '/reseller/profile/customize'
     | '/api/reseller/request-reset'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/about-us'
     | '/account'
     | '/cart'
     | '/categories'
+    | '/contact'
+    | '/contact-us'
+    | '/faq'
+    | '/legal'
+    | '/legal-notice'
     | '/orders'
+    | '/payment-policy'
+    | '/privacy'
+    | '/privacy-policy'
+    | '/refund-policy'
     | '/returns-refunds'
     | '/shipping-policy'
+    | '/terms'
+    | '/terms-of-service'
     | '/verification-compliance'
     | '/admin/$'
     | '/admin/admins'
@@ -815,6 +979,7 @@ export interface FileRouteTypes {
     | '/reseller/shop'
     | '/store/$slug'
     | '/admin'
+    | '/reseller'
     | '/admin/ach/customers'
     | '/admin/ach/financial'
     | '/admin/ars/deposit'
@@ -841,18 +1006,32 @@ export interface FileRouteTypes {
     | '/api/admin/delete-reseller'
     | '/api/admin/delete-staff'
     | '/api/admin/reset-reseller-password'
+    | '/api/admin/update-order-status'
     | '/api/admin/verify-all'
     | '/reseller/profile/customize'
     | '/api/reseller/request-reset'
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/about-us'
     | '/account'
     | '/cart'
     | '/categories'
+    | '/contact'
+    | '/contact-us'
+    | '/faq'
+    | '/legal'
+    | '/legal-notice'
     | '/orders'
+    | '/payment-policy'
+    | '/privacy'
+    | '/privacy-policy'
+    | '/refund-policy'
     | '/returns-refunds'
     | '/shipping-policy'
+    | '/terms'
+    | '/terms-of-service'
     | '/verification-compliance'
     | '/admin/$'
     | '/admin/admins'
@@ -891,6 +1070,7 @@ export interface FileRouteTypes {
     | '/reseller/shop'
     | '/store/$slug'
     | '/admin/'
+    | '/reseller/'
     | '/admin/ach/customers'
     | '/admin/ach/financial'
     | '/admin/ars/deposit'
@@ -917,19 +1097,33 @@ export interface FileRouteTypes {
     | '/api/admin/delete-reseller'
     | '/api/admin/delete-staff'
     | '/api/admin/reset-reseller-password'
+    | '/api/admin/update-order-status'
     | '/api/admin/verify-all'
-    | '/reseller/profile/customize'
+    | '/reseller/profile_/customize'
     | '/api/(public)/reseller/request-reset'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AboutUsRoute: typeof AboutUsRoute
   AccountRoute: typeof AccountRoute
   CartRoute: typeof CartRouteWithChildren
   CategoriesRoute: typeof CategoriesRouteWithChildren
+  ContactRoute: typeof ContactRoute
+  ContactUsRoute: typeof ContactUsRoute
+  FaqRoute: typeof FaqRoute
+  LegalRoute: typeof LegalRoute
+  LegalNoticeRoute: typeof LegalNoticeRoute
   OrdersRoute: typeof OrdersRoute
+  PaymentPolicyRoute: typeof PaymentPolicyRoute
+  PrivacyRoute: typeof PrivacyRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
   ReturnsRefundsRoute: typeof ReturnsRefundsRoute
   ShippingPolicyRoute: typeof ShippingPolicyRoute
+  TermsRoute: typeof TermsRoute
+  TermsOfServiceRoute: typeof TermsOfServiceRoute
   VerificationComplianceRoute: typeof VerificationComplianceRoute
   AdminSplatRoute: typeof AdminSplatRoute
   AdminAdminsRoute: typeof AdminAdminsRoute
@@ -959,12 +1153,13 @@ export interface RootRouteChildren {
   ResellerLoginRoute: typeof ResellerLoginRoute
   ResellerMessagesRoute: typeof ResellerMessagesRoute
   ResellerOrdersRoute: typeof ResellerOrdersRoute
-  ResellerProfileRoute: typeof ResellerProfileRouteWithChildren
+  ResellerProfileRoute: typeof ResellerProfileRoute
   ResellerRegisterRoute: typeof ResellerRegisterRoute
   ResellerShareTargetRoute: typeof ResellerShareTargetRoute
   ResellerShopRoute: typeof ResellerShopRoute
   StoreSlugRoute: typeof StoreSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  ResellerIndexRoute: typeof ResellerIndexRoute
   AdminAchCustomersRoute: typeof AdminAchCustomersRoute
   AdminAchFinancialRoute: typeof AdminAchFinancialRoute
   AdminArsDepositRoute: typeof AdminArsDepositRoute
@@ -991,7 +1186,9 @@ export interface RootRouteChildren {
   ApiAdminDeleteResellerRoute: typeof ApiAdminDeleteResellerRoute
   ApiAdminDeleteStaffRoute: typeof ApiAdminDeleteStaffRoute
   ApiAdminResetResellerPasswordRoute: typeof ApiAdminResetResellerPasswordRoute
+  ApiAdminUpdateOrderStatusRoute: typeof ApiAdminUpdateOrderStatusRoute
   ApiAdminVerifyAllRoute: typeof ApiAdminVerifyAllRoute
+  ResellerProfileCustomizeRoute: typeof ResellerProfileCustomizeRoute
   ApipublicResellerRequestResetRoute: typeof ApipublicResellerRequestResetRoute
 }
 
@@ -1002,6 +1199,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about-us': {
+      id: '/about-us'
+      path: '/about-us'
+      fullPath: '/about-us'
+      preLoaderRoute: typeof AboutUsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account': {
@@ -1025,11 +1236,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact-us': {
+      id: '/contact-us'
+      path: '/contact-us'
+      fullPath: '/contact-us'
+      preLoaderRoute: typeof ContactUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal-notice': {
+      id: '/legal-notice'
+      path: '/legal-notice'
+      fullPath: '/legal-notice'
+      preLoaderRoute: typeof LegalNoticeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders': {
       id: '/orders'
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-policy': {
+      id: '/payment-policy'
+      path: '/payment-policy'
+      fullPath: '/payment-policy'
+      preLoaderRoute: typeof PaymentPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/returns-refunds': {
@@ -1044,6 +1318,20 @@ declare module '@tanstack/react-router' {
       path: '/shipping-policy'
       fullPath: '/shipping-policy'
       preLoaderRoute: typeof ShippingPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms-of-service': {
+      id: '/terms-of-service'
+      path: '/terms-of-service'
+      fullPath: '/terms-of-service'
+      preLoaderRoute: typeof TermsOfServiceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verification-compliance': {
@@ -1233,6 +1521,13 @@ declare module '@tanstack/react-router' {
       path: '/products/$id'
       fullPath: '/products/$id'
       preLoaderRoute: typeof ProductsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reseller/': {
+      id: '/reseller/'
+      path: '/reseller'
+      fullPath: '/reseller/'
+      preLoaderRoute: typeof ResellerIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reseller/$': {
@@ -1494,6 +1789,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminResetResellerPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/update-order-status': {
+      id: '/api/admin/update-order-status'
+      path: '/api/admin/update-order-status'
+      fullPath: '/api/admin/update-order-status'
+      preLoaderRoute: typeof ApiAdminUpdateOrderStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/verify-all': {
       id: '/api/admin/verify-all'
       path: '/api/admin/verify-all'
@@ -1501,12 +1803,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminVerifyAllRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reseller/profile/customize': {
-      id: '/reseller/profile/customize'
-      path: '/customize'
+    '/reseller/profile_/customize': {
+      id: '/reseller/profile_/customize'
+      path: '/reseller/profile/customize'
       fullPath: '/reseller/profile/customize'
       preLoaderRoute: typeof ResellerProfileCustomizeRouteImport
-      parentRoute: typeof ResellerProfileRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/(public)/reseller/request-reset': {
       id: '/api/(public)/reseller/request-reset'
@@ -1542,26 +1844,27 @@ const CategoriesRouteWithChildren = CategoriesRoute._addFileChildren(
   CategoriesRouteChildren,
 )
 
-interface ResellerProfileRouteChildren {
-  ResellerProfileCustomizeRoute: typeof ResellerProfileCustomizeRoute
-}
-
-const ResellerProfileRouteChildren: ResellerProfileRouteChildren = {
-  ResellerProfileCustomizeRoute: ResellerProfileCustomizeRoute,
-}
-
-const ResellerProfileRouteWithChildren = ResellerProfileRoute._addFileChildren(
-  ResellerProfileRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AboutUsRoute: AboutUsRoute,
   AccountRoute: AccountRoute,
   CartRoute: CartRouteWithChildren,
   CategoriesRoute: CategoriesRouteWithChildren,
+  ContactRoute: ContactRoute,
+  ContactUsRoute: ContactUsRoute,
+  FaqRoute: FaqRoute,
+  LegalRoute: LegalRoute,
+  LegalNoticeRoute: LegalNoticeRoute,
   OrdersRoute: OrdersRoute,
+  PaymentPolicyRoute: PaymentPolicyRoute,
+  PrivacyRoute: PrivacyRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
   ReturnsRefundsRoute: ReturnsRefundsRoute,
   ShippingPolicyRoute: ShippingPolicyRoute,
+  TermsRoute: TermsRoute,
+  TermsOfServiceRoute: TermsOfServiceRoute,
   VerificationComplianceRoute: VerificationComplianceRoute,
   AdminSplatRoute: AdminSplatRoute,
   AdminAdminsRoute: AdminAdminsRoute,
@@ -1591,12 +1894,13 @@ const rootRouteChildren: RootRouteChildren = {
   ResellerLoginRoute: ResellerLoginRoute,
   ResellerMessagesRoute: ResellerMessagesRoute,
   ResellerOrdersRoute: ResellerOrdersRoute,
-  ResellerProfileRoute: ResellerProfileRouteWithChildren,
+  ResellerProfileRoute: ResellerProfileRoute,
   ResellerRegisterRoute: ResellerRegisterRoute,
   ResellerShareTargetRoute: ResellerShareTargetRoute,
   ResellerShopRoute: ResellerShopRoute,
   StoreSlugRoute: StoreSlugRoute,
   AdminIndexRoute: AdminIndexRoute,
+  ResellerIndexRoute: ResellerIndexRoute,
   AdminAchCustomersRoute: AdminAchCustomersRoute,
   AdminAchFinancialRoute: AdminAchFinancialRoute,
   AdminArsDepositRoute: AdminArsDepositRoute,
@@ -1623,7 +1927,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminDeleteResellerRoute: ApiAdminDeleteResellerRoute,
   ApiAdminDeleteStaffRoute: ApiAdminDeleteStaffRoute,
   ApiAdminResetResellerPasswordRoute: ApiAdminResetResellerPasswordRoute,
+  ApiAdminUpdateOrderStatusRoute: ApiAdminUpdateOrderStatusRoute,
   ApiAdminVerifyAllRoute: ApiAdminVerifyAllRoute,
+  ResellerProfileCustomizeRoute: ResellerProfileCustomizeRoute,
   ApipublicResellerRequestResetRoute: ApipublicResellerRequestResetRoute,
 }
 export const routeTree = rootRouteImport

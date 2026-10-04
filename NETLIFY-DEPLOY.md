@@ -14,7 +14,7 @@ A single Netlify site serves the main shop, reseller portal, and admin portal us
 
 1. In Netlify, create a new site (or use the existing GCOS site).
 2. Connect it to your Git provider and select the GCOS repo, **or** drag-and-drop the build output.
-3. Make sure the primary domain is set to `globalcart-onlinesshop.com` (or `www.globalcart-onlineshop.com` with the apex redirecting to `www`).
+3. Make sure the primary domain is set to `globalcart-onlineshop.com` (or `www.globalcart-onlineshop.com` with the apex redirecting to `www`).
 
 ---
 
@@ -27,7 +27,7 @@ A single Netlify site serves the main shop, reseller portal, and admin portal us
 | Build command | `npm run build` |
 | Publish directory | `dist` |
 | Node version | `22` |
-| Nitro preset | `netlify` (produces `.netlify/functions-internal/server`) |
+| Nitro preset | `netlify` (pinned in `vite.config.ts`; produces `.netlify/functions-internal/server`) |
 
 ---
 
@@ -49,6 +49,7 @@ VITE_SUPABASE_PROJECT_ID=hreotqowulxpchyxjlai
 
 ```
 VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
+SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
 ```
 
 3. Copy the **service_role secret** key into:
@@ -58,6 +59,9 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 ```
 
 > `SUPABASE_SERVICE_ROLE_KEY` is used only by the server function. Never expose it in the browser.
+>
+> Also set `SUPABASE_URL` to the same Supabase URL as `VITE_SUPABASE_URL`. The server requires
+> `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
@@ -87,19 +91,13 @@ If you use Netlify DNS, Netlify creates the records automatically when you add t
 
 ## 5. Redirect / rewrite rule (Netlify)
 
-The single function produced by the Nitro `netlify` preset already handles routing, but Netlify must route **all** paths to it.
-
-Add a redirect in **Site configuration → Redirects**:
+The single function produced by the Nitro `netlify` preset handles routing. The wildcard rewrite is already checked in at `public/_redirects` and is copied to `dist/_redirects` during the build:
 
 ```
-/*  /.netlify/functions-internal/server  200
+/*    /.netlify/functions-internal/server   200
 ```
 
-Or create `_redirects` in the publish directory (`dist/_redirects`) with:
-
-```
-/* /.netlify/functions-internal/server 200
-```
+Do not replace it with a static `index.html` fallback; that would bypass server-side routing and API handlers.
 
 ---
 
@@ -202,4 +200,3 @@ Visit:
 - `http://reseller.globalcart-onlineshop.local:8080` — reseller portal
 
 This proves the app code rewrites subdomains to `/admin/*` and `/reseller/*` correctly, but it does not test Netlify's CDN or SSL.
-

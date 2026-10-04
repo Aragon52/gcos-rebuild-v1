@@ -26,7 +26,7 @@ const canonicalPageTitles: Record<string, { title: string; breadcrumb: React.Rea
   "/admin/messenger": { title: "Messenger", breadcrumb: "Management & Financing" },
   "/admin/roles": { title: "Roles & Permissions", breadcrumb: "Management & Financing" },
   "/admin/audit-logs": { title: "Audit Logs", breadcrumb: "Management & Financing" },
-  "/admin/security": { title: "Security", breadcrumb: "Management & Financing" },
+  "/admin/security": { title: "Security and sessions", breadcrumb: "System" },
   "/admin/sla/ownership": { title: "Ownership", breadcrumb: "Management & Financing" },
   "/admin/sla/administrator": { title: "Administrator", breadcrumb: "Management & Financing" },
   "/admin/sla/staff": { title: "Staff", breadcrumb: "Management & Financing" },

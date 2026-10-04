@@ -100,6 +100,7 @@ const canonicalNavGroups: NavGroup[] = [
           { title: "System Dashboard", url: "/admin/system" },
           { title: "Active Alerts", url: "/admin/alerts" },
           { title: "System Logs", url: "/admin/system-logs" },
+          { title: "Security & sessions", url: "/admin/security" },
         ],
       },
     ],

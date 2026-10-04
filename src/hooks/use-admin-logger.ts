@@ -34,10 +34,10 @@ export function useAdminLogger() {
       });
 
       if (error) {
-        console.error('Failed to log admin activity:', error);
+        console.warn('Admin audit log not saved:', error.message || error);
       }
     } catch (e) {
-      console.error('Error logging admin activity:', e);
+      console.warn('Error in admin audit logging:', e);
     }
   }, [session]);
 
