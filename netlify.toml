@@ -9,8 +9,7 @@
 # (Site configuration -> Environment variables):
 #   VITE_SUPABASE_URL
 #   VITE_SUPABASE_PUBLISHABLE_KEY
-#   SUPABASE_URL
-#   SUPABASE_PUBLISHABLE_KEY
+#   VITE_SUPABASE_PROJECT_ID
 #   SUPABASE_SERVICE_ROLE_KEY   (server-side only, never exposed to the browser)
 
 [build]
@@ -18,9 +17,20 @@
   publish = "dist"
 
 [build.environment]
+  NITRO_PRESET = "netlify"
   NODE_VERSION = "22"
 
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+  from = "/.well-known/assetlinks.json"
+  to = "/.well-known/assetlinks.json"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
