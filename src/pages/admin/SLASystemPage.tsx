@@ -1,7 +1,10 @@
 import { Link } from "@/lib/router-compat";
 import { adminPath } from "@/lib/subdomain";
 import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
-import { Globe, Users, Shield } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { StatCard } from "@/components/admin/StatCard";
+import { Globe, Users, Shield, Activity, Clock, CheckCircle, AlertCircle, BarChart3 } from "lucide-react";
 
 interface Metric {
   name: string;

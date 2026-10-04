@@ -1,6 +1,6 @@
 import { AppSidebar } from "@/components/admin/AppSidebar";
 import { DataDiagnosticsModal } from "@/components/admin/DataDiagnosticsModal";
-import { Activity } from "lucide-react";
+import { Activity, ChevronRight, Search, Sun, Moon, LogOut } from "lucide-react";
 import { useLocation, useNavigate } from "@/lib/router-compat";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";

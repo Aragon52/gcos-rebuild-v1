@@ -22,11 +22,11 @@ export function PortalSwitcher() {
   const handleSwitch = (portal: PortalType) => {
     setPortalOverride(portal);
     if (portal === "admin") {
-      navigate({ to: "/admin" });
+      navigate("/admin");
     } else if (portal === "reseller") {
-      navigate({ to: "/reseller/dashboard" });
+      navigate("/reseller/dashboard");
     } else {
-      navigate({ to: "/" });
+      navigate("/");
     }
   };
 
