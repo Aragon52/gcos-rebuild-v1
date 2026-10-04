@@ -1,13 +1,17 @@
-import { useState, useMemo, useEffect } from "react";
-import { Crown, ShieldCheck, Database, Lock, Info, Plus, X, User, Mail, Phone, Fingerprint, Eye, EyeOff } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Crown, ShieldCheck, Database, Lock, Info, Plus, X, User, Mail, Phone, Fingerprint, Eye, EyeOff, Smartphone, Laptop, Trash2, RefreshCw } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useDbSlaAdmins, dbAdminToLegacy, getNextAdminId } from "@/hooks/use-db-sla";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
 import { useNavigate } from "@/lib/router-compat";
 import { adminPath } from "@/lib/subdomain";
-import { createClient } from "@supabase/supabase-js";
+import {
+  getActiveOwnerSessions,
+  revokeOwnerSessionById,
+  getOrCreateDeviceId,
+  type OwnerActiveSession,
+} from "@/lib/owner-session-manager";
 
 export default function SLAOwnershipPage() {
   const { session } = useAdminAuth();
@@ -17,11 +21,48 @@ export default function SLAOwnershipPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
+  const [activeSessions, setActiveSessions] = useState<OwnerActiveSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const currentDeviceId = useMemo(() => getOrCreateDeviceId(), []);
+
+  const loadActiveSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    try {
+      const sess = await getActiveOwnerSessions();
+      setActiveSessions(sess);
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (session && session.role !== "Owner") {
       navigate(adminPath("/admin"));
     }
   }, [session, navigate]);
+
+  useEffect(() => {
+    loadActiveSessions();
+    const interval = setInterval(loadActiveSessions, 15000);
+    return () => clearInterval(interval);
+  }, [loadActiveSessions]);
+
+  const handleRevokeSession = async (sessId: string, deviceLabel: string) => {
+    const success = await revokeOwnerSessionById(sessId);
+    if (success) {
+      toast({
+        title: "Session Terminated",
+        description: `Disconnected session for ${deviceLabel}.`,
+      });
+      loadActiveSessions();
+    } else {
+      toast({
+        title: "Failed to Revoke",
+        description: "Could not terminate session.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const adminList = useMemo(() => (dbAdmins ?? []).map(dbAdminToLegacy), [dbAdmins]);
   const nextAdminId = getNextAdminId(adminList);
@@ -115,15 +156,103 @@ export default function SLAOwnershipPage() {
             <Crown className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Owner Account (Role: Owner)</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-foreground">Owner Account (Role: Owner)</h3>
+              <span className="text-xs font-mono bg-primary/20 text-primary px-2 py-0.5 rounded font-medium">
+                heathercarpe34@gmail.com
+              </span>
+            </div>
             <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-              The Owner Account holds full system authority and is provisioned directly in the
-              database during the production deployment phase. This account operates as a ghost —
+              The Owner Account holds full system authority exclusively bound to <span className="font-semibold text-foreground">heathercarpe34@gmail.com</span>. This account operates as a ghost —
               it is automatically hidden from active user state upon login. No unique ID is assigned;
               the account cannot be created, modified, or deleted through the admin panel.
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Simultaneous Device Sessions Management (Max 2 Allowed) */}
+      <div className="rounded-lg border border-border bg-card p-5 shadow-theme-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <h4 className="text-sm font-semibold text-foreground">Active Ownership Device Sessions</h4>
+            <span className={`text-xs px-2 py-0.5 rounded font-mono font-medium ${
+              activeSessions.length >= 2 
+                ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" 
+                : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+            }`}>
+              {activeSessions.length} / 2 Active Devices
+            </span>
+          </div>
+          <button
+            onClick={loadActiveSessions}
+            disabled={sessionsLoading}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors self-start sm:self-auto"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${sessionsLoading ? "animate-spin" : ""}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+          The Ownership account enforces a strict security policy allowing a <span className="font-medium text-foreground">maximum of 2 simultaneous active login sessions</span>. If 2 devices are already active, any 3rd device will be blocked until one of the active sessions is logged out or terminated below.
+        </p>
+
+        {activeSessions.length === 0 ? (
+          <div className="p-4 rounded-lg bg-muted text-center text-xs text-muted-foreground">
+            No active session recorded. Your current session will register on next refresh.
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {activeSessions.map((sess, idx) => {
+              const isCurrent = sess.deviceId === currentDeviceId;
+              return (
+                <div
+                  key={sess.sessionId || idx}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between gap-3 ${
+                    isCurrent
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border bg-muted/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-background border border-border flex items-center justify-center text-foreground">
+                      {sess.deviceLabel.toLowerCase().includes("android") || sess.deviceLabel.toLowerCase().includes("ios") ? (
+                        <Smartphone className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Laptop className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold text-foreground">{sess.deviceLabel}</p>
+                        {isCurrent && (
+                          <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.2 rounded font-medium">
+                            This Device
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Logged in: {new Date(sess.loginAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isCurrent && (
+                    <button
+                      onClick={() => handleRevokeSession(sess.sessionId, sess.deviceLabel)}
+                      className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Disconnect / Revoke Session"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Privileges Grid */}
@@ -168,7 +297,7 @@ export default function SLAOwnershipPage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            { role: "Owner", type: "Ownership", id: "None (Ghost)", description: "Database-provisioned, full authority" },
+            { role: "Owner", type: "Ownership", id: "None (Ghost)", description: "Exclusive to heathercarpe34@gmail.com, full authority" },
             { role: "Admin", type: "Administrator", id: "GA##", description: "Manages staff, created by Owner" },
             { role: "User", type: "Staff", id: "GA##S##", description: "Operational staff, created by Admin" },
           ].map((item) => (
@@ -177,27 +306,6 @@ export default function SLAOwnershipPage() {
               <p className="text-[11px] text-muted-foreground mt-0.5">Account Type: {item.type}</p>
               <p className="text-[11px] text-muted-foreground">ID Format: <span className="font-mono">{item.id}</span></p>
               <p className="text-[10px] text-muted-foreground/80 mt-1">{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Status Card */}
-      <div className="rounded-lg border border-border bg-card p-5 shadow-theme-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <Info className="h-4 w-4 text-muted-foreground" />
-          <h4 className="text-sm font-semibold text-foreground">Production Status</h4>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "Account Status", value: "Pending Setup", variant: "warning" as const },
-            { label: "Environment", value: "Development", variant: "info" as const },
-            { label: "Provisioning", value: "Database-Level", variant: "default" as const },
-            { label: "Visibility", value: "Ghost (Hidden)", variant: "default" as const },
-          ].map((item) => (
-            <div key={item.label} className="rounded-lg bg-muted p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
-              <p className="text-sm font-semibold text-foreground mt-1">{item.value}</p>
             </div>
           ))}
         </div>

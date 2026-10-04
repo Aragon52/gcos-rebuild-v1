@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/admin/StatusBadge";
-import { Activity, Clock, CheckCircle, AlertCircle, BarChart3 } from "lucide-react";
-import { StatCard } from "@/components/admin/StatCard";
+import { Link } from "@/lib/router-compat";
+import { adminPath } from "@/lib/subdomain";
+import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
+import { Globe, Users, Shield } from "lucide-react";
 
 interface Metric {
   name: string;
@@ -11,13 +11,25 @@ interface Metric {
 }
 
 export default function SLASystemPage() {
+  const { session } = useAdminAuth();
   const metrics: Metric[] = [];
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">SLA Management</h1>
-        <p className="text-sm text-muted-foreground">Monitor and manage Service Level Agreements across the system.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">System & Security Management</h1>
+          <p className="text-sm text-muted-foreground">Monitor system configuration, active administrator sessions, and audit telemetry.</p>
+        </div>
+        {session?.role === "Owner" && (
+          <Link
+            to={adminPath("/admin/admin-sessions")}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <Globe className="h-4 w-4" />
+            <span>Admin Session Logs & IP Tracker</span>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

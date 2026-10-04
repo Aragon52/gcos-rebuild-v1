@@ -8,7 +8,7 @@ import {
 import { useLocation, Link } from "@/lib/router-compat";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { useAdminAuth, isPathAllowed, type SLARole } from "@/lib/admin-auth-context-hooks";
+import { useAdminAuth, isPathAllowed, OWNER_ONLY_PATHS, type SLARole } from "@/lib/admin-auth-context-hooks";
 import { adminPath } from "@/lib/subdomain";
 import {
   Sidebar,
@@ -37,7 +37,8 @@ type NavItem = {
   title: string;
   icon: React.ElementType;
   url?: string;
-  children?: { title: string; url: string }[];
+  rawUrl?: string;
+  children?: { title: string; url: string; rawUrl?: string }[];
 };
 
 type NavGroup = {
@@ -98,9 +99,9 @@ const canonicalNavGroups: NavGroup[] = [
         icon: Activity,
         children: [
           { title: "System Dashboard", url: "/admin/system" },
+          { title: "Admin Session Logs", url: "/admin/admin-sessions" },
           { title: "Active Alerts", url: "/admin/alerts" },
           { title: "System Logs", url: "/admin/system-logs" },
-          { title: "Security & sessions", url: "/admin/security" },
         ],
       },
     ],
@@ -112,35 +113,33 @@ function transformNavGroups(groups: NavGroup[]): NavGroup[] {
     ...g,
     items: g.items.map((item) => ({
       ...item,
+      rawUrl: item.url,
       url: item.url ? adminPath(item.url) : undefined,
-      children: item.children?.map((c) => ({ ...c, url: adminPath(c.url) })),
+      children: item.children?.map((c) => ({
+        ...c,
+        rawUrl: c.url,
+        url: adminPath(c.url),
+      })),
     })),
   }));
 }
 
 function filterByRole(groups: NavGroup[], role: SLARole): NavGroup[] {
   if (role === "Owner") return groups;
-
   return groups
-    .map((group) => ({
-      ...group,
-      items: group.items
-        .map((item) => {
-          if (item.children) {
-            const filteredChildren = item.children.filter((c) => {
-              const canonical = c.url.replace(adminPath(""), "") || c.url;
-              return isPathAllowed(role, canonical);
-            });
-            if (filteredChildren.length === 0) return null;
-            return { ...item, children: filteredChildren };
-          }
-          if (item.url) {
-            const origItem = canonicalNavGroups.flatMap(g => g.items).find(i => i.url && adminPath(i.url) === item.url);
-            if (origItem?.url && !isPathAllowed(role, origItem.url)) return null;
-          }
-          return item;
-        })
-        .filter(Boolean) as NavItem[],
+    .map((g) => ({
+      ...g,
+      items: g.items
+        .filter((item) => !item.rawUrl || !OWNER_ONLY_PATHS.has(item.rawUrl))
+        .map((item) => ({
+          ...item,
+          children: item.children?.filter((c) => !c.rawUrl || !OWNER_ONLY_PATHS.has(c.rawUrl)),
+        }))
+        .filter((item) => {
+          // If it has children, only keep it if children is not empty
+          if (item.children) return item.children.length > 0;
+          return true;
+        }),
     }))
     .filter((g) => g.items.length > 0);
 }

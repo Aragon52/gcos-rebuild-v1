@@ -25,38 +25,44 @@ export const STAFF_ALLOWED_PATHS = new Set([
   "/admin/sla/broadcast-news",
   "/admin/sla/sqc",
   "/admin/sla/sqc-orders",
+  "/admin/sla/administrator",
+  "/admin/sla/staff",
+  "/admin/sla/reseller-2-admin",
   "/admin/ars/reseller-profiles",
   "/admin/ars/retail-shops",
   "/admin/ars/orders",
+  "/admin/ars/payment-info",
+  "/admin/ars/deposit",
+  "/admin/ars/withdrawal",
   "/admin/customer-care/staffs",
   "/admin/customer-care/reseller-profile",
   "/admin/customer-care/virtual-services",
   "/admin/customer-care/order-services",
-]);
-
-export const ADMIN_BLOCKED_PATHS = new Set([
-  "/admin/sla/ownership",
+  "/admin/system",
+  "/admin/admin-sessions",
+  "/admin/system/sessions",
+  "/admin/alerts",
+  "/admin/system-logs",
+  "/admin/admins",
+  "/admin/messenger",
+  "/admin/roles",
+  "/admin/audit-logs",
   "/admin/security",
 ]);
 
-// Management & Financing paths that Staff cannot access
-export const MANAGEMENT_FINANCING_PATHS = new Set([
+export const OWNER_ONLY_PATHS = new Set([
   "/admin/sla/ownership",
-  "/admin/sla/administrator",
-  "/admin/sla/reseller-2-admin",
-  "/admin/ars/payment-info",
-  "/admin/ars/deposit",
-  "/admin/ars/withdrawal",
-  "/admin/admins",
+  "/admin/admin-sessions",
+  "/admin/system/sessions",
 ]);
 
 export function isPathAllowed(role: SLARole, pathname: string): boolean {
   const p = pathname.replace(/\/$/, "") || "/admin";
   if (p.startsWith("/admin/auth")) return true;
-  if (role === "Owner") return true;
-  if (role === "Admin") {
-    return !ADMIN_BLOCKED_PATHS.has(p);
+  if (OWNER_ONLY_PATHS.has(p)) {
+    return role === "Owner";
   }
+  if (role === "Owner" || role === "Admin") return true;
   return STAFF_ALLOWED_PATHS.has(p);
 }
 

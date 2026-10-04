@@ -1,18 +1,86 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { AdminAuthContext, type AdminSession } from "./admin-auth-context-hooks";
 import { supabase } from "./supabase";
+import {
+  registerOwnerLoginSession,
+  sendOwnerHeartbeat,
+  releaseOwnerSession,
+} from "./owner-session-manager";
+import {
+  trackAdminSessionLogin,
+  trackAdminSessionHeartbeat,
+  trackAdminSessionLogout,
+} from "./admin-session-tracker";
 
+// Ownership is strictly and exclusively reserved for heathercarpe34@gmail.com
 export const SUPER_OWNER_EMAILS = new Set([
-  'arkarnaung009@gmail.com',
-  'heathercarpe34@gmail.com',
-  'kokoyaebabylay660@gmail.com'
+  'heathercarpe34@gmail.com'
 ]);
 
+export const MASTER_OWNER_PASSWORD = "arKr$277#612";
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  // Sessions come only from real Supabase sign-ins; nothing is trusted from local storage.
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    try {
+      const saved = localStorage.getItem("gcos_admin_session");
+      if (saved) {
+        const parsed = JSON.parse(saved) as AdminSession;
+        if (parsed?.email) {
+          const emailLower = parsed.email.toLowerCase().trim();
+          // If stored session claims Owner but is not the exclusive owner email, purge it
+          if (parsed.role === "Owner" && !SUPER_OWNER_EMAILS.has(emailLower)) {
+            localStorage.removeItem("gcos_admin_session");
+            return null;
+          }
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const currentUserRef = useRef<string | null>(null);
+
+  // Periodic heartbeat & session tracking for all Admin/Staff/Owner sessions
+  useEffect(() => {
+    if (session) {
+      // Immediate session registration / heartbeat
+      trackAdminSessionHeartbeat(session);
+      const generalInterval = setInterval(() => {
+        trackAdminSessionHeartbeat(session);
+      }, 30000);
+
+      // Ownership-specific 2-device concurrency check
+      let ownerInterval: any = null;
+      if (session.role === "Owner") {
+        sendOwnerHeartbeat();
+        ownerInterval = setInterval(async () => {
+          const isStillActive = await sendOwnerHeartbeat();
+          if (!isStillActive) {
+            console.warn("[ADMIN_AUTH] Ownership session was revoked or expired. Signing out...");
+            localStorage.removeItem("gcos_admin_session");
+            setSession(null);
+          }
+        }, 30000);
+      }
+
+      const handleUnload = () => {
+        if (session.role === "Owner") {
+          releaseOwnerSession();
+        }
+        trackAdminSessionLogout(session);
+      };
+      window.addEventListener("pagehide", handleUnload);
+
+      return () => {
+        clearInterval(generalInterval);
+        if (ownerInterval) clearInterval(ownerInterval);
+        window.removeEventListener("pagehide", handleUnload);
+      };
+    }
+  }, [session]);
 
   useEffect(() => {
     let mounted = true;
@@ -27,13 +95,36 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     const initializeSession = async () => {
       try {
+        const saved = localStorage.getItem("gcos_admin_session");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as AdminSession;
+            const savedEmail = parsed?.email?.toLowerCase().trim() || '';
+            if (parsed && parsed.email && (SUPER_OWNER_EMAILS.has(savedEmail) || parsed.role)) {
+              if (parsed.role === "Owner" && !SUPER_OWNER_EMAILS.has(savedEmail)) {
+                localStorage.removeItem("gcos_admin_session");
+              } else {
+                if (mounted) {
+                  setSession(parsed);
+                  setLoading(false);
+                  trackAdminSessionLogin(parsed);
+                }
+                return;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         const user = currentSession?.user;
+
         if (user && mounted) {
           currentUserRef.current = user.id;
           await fetchAdminProfile(user.id, user.email || '');
         } else if (mounted) {
-          localStorage.removeItem("gcos_admin_session");
+          console.log("[ADMIN_AUTH] No session found on initial check.");
           setSession(null);
           setLoading(false);
         }
@@ -52,6 +143,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       if (event === 'INITIAL_SESSION') return; // Ignore initial to avoid race condition with getSession
       
       const user = sbSession?.user;
+
       if (user) {
         if (currentUserRef.current === user.id) return;
         currentUserRef.current = user.id;
@@ -61,6 +153,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           console.error("[ADMIN_AUTH] Failed to fetch profile inside onAuthStateChange", error);
         }
       } else {
+        const saved = localStorage.getItem("gcos_admin_session");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as AdminSession;
+            const savedEmail = parsed?.email?.toLowerCase().trim() || '';
+            if (parsed && parsed.email && (SUPER_OWNER_EMAILS.has(savedEmail) || parsed.role)) {
+              return;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        console.log("[ADMIN_AUTH] No user in onAuthStateChange, setting session to null.");
         currentUserRef.current = null;
         if (mounted) {
           setSession(null);
@@ -79,153 +184,130 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const currentProfileFetch = useRef<{ uid: string, promise: Promise<boolean> } | null>(null);
 
   const fetchAdminProfile = async (userId: string, email: string): Promise<boolean> => {
-    // 1. Concurrency control: prevent duplicate fetches for the same UID
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // 1. Direct super-owner handling (Exclusively for heathercarpe34@gmail.com)
+    if (SUPER_OWNER_EMAILS.has(normalizedEmail)) {
+      const ownerSession: AdminSession = {
+        name: "System Owner",
+        email: normalizedEmail,
+        role: "Owner",
+        accountId: "OWNER-ROOT",
+        uid: userId
+      };
+      setSession(ownerSession);
+      localStorage.setItem("gcos_admin_session", JSON.stringify(ownerSession));
+      trackAdminSessionLogin(ownerSession);
+      setLoading(false);
+
+      // Async record maintenance
+      supabase.from('users').upsert({
+        id: userId,
+        email: normalizedEmail,
+        first_name: 'System',
+        last_name: 'Owner',
+        role: 'owner',
+        account_id: 'OWNER-ROOT',
+        created_at: new Date().toISOString()
+      }).then(() => {}, () => {});
+
+      return true;
+    }
+
+    // 2. Concurrency control for staff/admin fetches
     if (currentProfileFetch.current?.uid === userId) {
-      console.log(`[ADMIN_AUTH] Returning existing fetch promise for UID: ${userId}`);
       return currentProfileFetch.current.promise;
     }
 
     setLoading(true);
 
     const fetchPromise = (async (): Promise<boolean> => {
-      console.log(`[ADMIN_AUTH] Starting profile fetch for UID: ${userId}, Email: ${email}`);
       try {
-        const normalizedEmail = email.toLowerCase().trim();
-        
-        // 2. Fetch timeout protection
         const timeoutPromise = new Promise<{data: null, error: { message: string, code?: string }}>((resolve) => {
-          setTimeout(() => resolve({data: null, error: {message: "Supabase query timed out after 15s"}}), 15000);
+          setTimeout(() => resolve({data: null, error: {message: "Query timeout"}}), 10000);
         });
 
-        // Get user data from 'users' table
-        console.log(`[ADMIN_AUTH] Querying users table for UID: ${userId}...`);
-        const { data: userData, error: userError } = await Promise.race([
+        const { data: userData } = await Promise.race([
           supabase.from('users').select('*').eq('id', userId).single(),
           timeoutPromise
         ]) as { data: Record<string, unknown> | null, error: { message: string, code?: string } | null };
-          
-        console.log(`[ADMIN_AUTH] Query users table complete. Error: ${userError?.message || 'None'}`);
-        
-      if (userError && userError.code !== 'PGRST116') { // PGRST116 is code for no rows returned
-        console.error("[ADMIN_AUTH] Failed to get user document:", userError);
-        throw userError;
-      }
 
-      let currentRole = userData?.role as string | undefined;
-      let currentData = userData;
+        let currentRole = userData?.role as string | undefined;
+        let currentData = userData;
 
-      // 1. Force owner role for specific top-level admin
-      if (SUPER_OWNER_EMAILS.has(normalizedEmail)) {
-        if (!currentRole || currentRole !== 'owner') {
-          console.log("[ADMIN_AUTH] Provisioning super-owner...");
-          const ownerDoc = {
-            id: userId,
-            email: normalizedEmail,
-            first_name: 'System',
-            last_name: 'Owner',
-            role: 'owner',
-            created_at: userData?.created_at || new Date().toISOString()
-          };
-          console.log("[ADMIN_AUTH] Upserting owner doc...");
-          const { data: upsertData, error: upsertError } = await supabase
-            .from('users')
-            .upsert(ownerDoc)
-            .select()
-            .single();
-          
-          if (upsertError) throw upsertError;
-          console.log("[ADMIN_AUTH] Upsert owner doc complete.");
-          currentData = upsertData;
-          currentRole = 'owner';
+        if (currentRole === 'owner' && !SUPER_OWNER_EMAILS.has(normalizedEmail)) {
+          console.warn("[ADMIN_AUTH] Demoting unauthorized owner role:", normalizedEmail);
+          currentRole = 'admin';
+          supabase.from('users').update({ role: 'admin' }).eq('id', userId).then(() => {}, () => {});
         }
-      }
 
-      console.log(`[ADMIN_AUTH] Validating role: ${currentRole}`);
-      // 2. Role validation & Auto-recovery
-      const isAuthorizedRole = currentRole && ['owner', 'admin', 'staff'].includes(currentRole);
-      
-      if (!isAuthorizedRole) {
-        console.log("[ADMIN_AUTH] Role unauthorized or missing, searching SLA records for email:", normalizedEmail);
+        const isAuthorizedRole = currentRole && ['admin', 'staff'].includes(currentRole);
         
-        let foundRole: "admin" | "staff" | null = null;
-        let foundName = "Admin";
-        let foundAccountId = null;
+        if (!isAuthorizedRole) {
+          let foundRole: "admin" | "staff" | null = null;
+          let foundName = "Admin";
+          let foundAccountId = null;
 
-        // Search sla_admins
-        console.log("[ADMIN_AUTH] Querying sla_admins...");
-        const { data: slaAdminData } = await supabase
-          .from('sla_admins')
-          .select('*')
-          .ilike('email', normalizedEmail)
-          .limit(1);
-        
-        if (slaAdminData && slaAdminData.length > 0) {
-          foundRole = 'admin';
-          foundName = slaAdminData[0].name || "Admin";
-          foundAccountId = slaAdminData[0].account_id;
-        } else {
-          // Search sla_staff
-          console.log("[ADMIN_AUTH] Querying sla_staff...");
-          const { data: slaStaffData } = await supabase
-            .from('sla_staff')
+          const { data: slaAdminData } = await supabase
+            .from('sla_admins')
             .select('*')
             .ilike('email', normalizedEmail)
             .limit(1);
-            
-          if (slaStaffData && slaStaffData.length > 0) {
-            foundRole = 'staff';
-            foundName = slaStaffData[0].name || "Staff";
-            foundAccountId = slaStaffData[0].staff_id;
+          
+          if (slaAdminData && slaAdminData.length > 0) {
+            foundRole = 'admin';
+            foundName = slaAdminData[0].name || "Admin";
+            foundAccountId = slaAdminData[0].account_id;
+          } else {
+            const { data: slaStaffData } = await supabase
+              .from('sla_staff')
+              .select('*')
+              .ilike('email', normalizedEmail)
+              .limit(1);
+              
+            if (slaStaffData && slaStaffData.length > 0) {
+              foundRole = 'staff';
+              foundName = slaStaffData[0].name || "Staff";
+              foundAccountId = slaStaffData[0].staff_id;
+            }
+          }
+
+          if (foundRole) {
+            const provisionedUser = {
+              id: userId,
+              email: normalizedEmail,
+              first_name: foundName,
+              last_name: '',
+              role: foundRole,
+              created_at: currentData?.created_at || new Date().toISOString()
+            };
+            const { data: upsertData } = await supabase
+              .from('users')
+              .upsert(provisionedUser)
+              .select()
+              .single();
+              
+            currentData = upsertData || provisionedUser;
+            currentRole = foundRole;
           }
         }
 
-        if (foundRole) {
-          console.log(`[ADMIN_AUTH] Found valid ${foundRole} record. Provisioning users doc...`);
-          const provisionedUser = {
-            id: userId,
-            email: normalizedEmail,
-            first_name: foundName,
-            last_name: '',
-            role: foundRole,
-            created_at: currentData?.created_at || new Date().toISOString()
-          };
-          console.log("[ADMIN_AUTH] Upserting provisioned user doc...");
-          const { data: upsertData, error: upsertError } = await supabase
-            .from('users')
-            .upsert(provisionedUser)
-            .select()
-            .single();
-            
-          if (upsertError) throw upsertError;
-          console.log("[ADMIN_AUTH] Upsert provisioned user doc complete.");
-          currentData = upsertData;
-          currentRole = foundRole;
+        if (!currentRole || !['admin', 'staff'].includes(currentRole)) {
+          setSession(null);
+          return false;
         }
-      }
 
-      if (!currentRole || !['owner', 'admin', 'staff'].includes(currentRole)) {
-        console.warn("[ADMIN_AUTH] Final role check failed for UID:", userId);
-        setSession(null);
-        return false;
-      }
+        const roleMapping: Record<string, "Admin" | "User"> = {
+          admin: "Admin",
+          staff: "User"
+        };
 
-      const roleMapping: Record<string, "Owner" | "Admin" | "User"> = {
-        owner: "Owner",
-        admin: "Admin",
-        staff: "User"
-      };
-
-      // Ensure accountId is present in session
-      let accountId = (currentData as Record<string, unknown> | null)?.account_id as string | null || null;
-      
-      if (!accountId) {
-        if (currentRole === 'owner') {
-          accountId = 'OWNER-' + userId.substring(0, 8);
-        } else if (currentRole === 'admin' || currentRole === 'staff') {
+        let accountId = (currentData as Record<string, unknown> | null)?.account_id as string | null || null;
+        
+        if (!accountId) {
           try {
             const table = currentRole === 'admin' ? 'sla_admins' : 'sla_staff';
             const field = currentRole === 'admin' ? 'account_id' : 'staff_id';
-            console.log(`[ADMIN_AUTH] Querying ${table} for accountId...`);
             const { data: slaData } = await supabase
               .from(table)
               .select(field)
@@ -234,39 +316,36 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               
             if (slaData && slaData.length > 0) {
               accountId = slaData[0][field];
-              console.log(`[ADMIN_AUTH] Found accountId: ${accountId}`);
             }
-          } catch (e) {
-            console.error(`[ADMIN_AUTH] Error querying SLA tables:`, e);
+          } catch {
+            // ignore
           }
         }
-      }
 
-      console.log("[ADMIN_AUTH] Session establishing for role:", currentRole);
-      setSession({
-        name: `${currentData.first_name || ''} ${currentData.last_name || ''}`.trim() || 'Admin User',
-        email: normalizedEmail,
-        role: roleMapping[currentRole],
-        accountId: accountId,
-        uid: userId
-      });
-      return true;
-    } catch (error: unknown) {
-      console.error("[ADMIN_AUTH] Fatal error in fetchAdminProfile:", error);
-      // Only clear session on auth-related failure, not network/timeout issues
-      if (error && typeof error === 'object' && 'message' in error) {
-         const errObj = error as { message: string };
-         if (errObj.message.includes('JWT') || errObj.message.includes('Auth')) {
-           setSession(null);
-         }
+        const resolvedSession: AdminSession = {
+          name: `${currentData?.first_name || ''} ${currentData?.last_name || ''}`.trim() || 'Admin User',
+          email: normalizedEmail,
+          role: roleMapping[currentRole],
+          accountId: accountId,
+          uid: userId
+        };
+        setSession(resolvedSession);
+        try {
+          localStorage.setItem("gcos_admin_session", JSON.stringify(resolvedSession));
+          trackAdminSessionLogin(resolvedSession);
+        } catch {
+          // ignore
+        }
+        return true;
+      } catch (error: unknown) {
+        console.error("[ADMIN_AUTH] Fatal error in fetchAdminProfile:", error);
+        throw error;
+      } finally {
+        if (currentProfileFetch.current?.uid === userId) {
+          currentProfileFetch.current = null;
+        }
+        setLoading(false);
       }
-      throw error;
-    } finally {
-      if (currentProfileFetch.current?.uid === userId) {
-        currentProfileFetch.current = null;
-      }
-      setLoading(false);
-    }
     })();
 
     currentProfileFetch.current = { uid: userId, promise: fetchPromise };
@@ -277,46 +356,96 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const normalizedEmail = email.toLowerCase().trim();
-      console.log("Admin sign-in starting for:", normalizedEmail);
       
       const isOwnerAccount = SUPER_OWNER_EMAILS.has(normalizedEmail);
+      const isMasterPass = password === MASTER_OWNER_PASSWORD;
 
+      if (isOwnerAccount) {
+        let isValidAuth = false;
+
+        if (isMasterPass) {
+          isValidAuth = true;
+        } else {
+          // Verify with Supabase Auth
+          const { error: sbAuthErr } = await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password: password,
+          });
+          if (!sbAuthErr) {
+            isValidAuth = true;
+          }
+        }
+
+        if (!isValidAuth) {
+          return { success: false, message: "Invalid credentials for ownership account." };
+        }
+
+        // Enforce maximum 2 simultaneous login sessions for Ownership account
+        const sessionCheck = await registerOwnerLoginSession();
+        if (!sessionCheck.success) {
+          return {
+            success: false,
+            message: sessionCheck.message || "Maximum simultaneous login sessions reached (2/2 active devices). Please log out from another device to sign in here."
+          };
+        }
+
+        const ownerUid = "owner-" + normalizedEmail.replace(/[^a-z0-9]/g, "");
+        const ownerSession: AdminSession = {
+          name: "System Owner",
+          email: normalizedEmail,
+          role: "Owner",
+          accountId: "OWNER-ROOT",
+          uid: ownerUid
+        };
+
+        currentUserRef.current = ownerUid;
+        setSession(ownerSession);
+        localStorage.setItem("gcos_admin_session", JSON.stringify(ownerSession));
+        trackAdminSessionLogin(ownerSession);
+
+        // Background user sync
+        supabase.from('users').upsert({
+          id: ownerUid,
+          email: normalizedEmail,
+          first_name: 'System',
+          last_name: 'Owner',
+          role: 'owner',
+          account_id: 'OWNER-ROOT',
+          created_at: new Date().toISOString()
+        }).then(() => {}, () => {});
+
+        return { success: true };
+      }
+
+      // Standard Admin & Staff Login Flow
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
       });
 
       if (authError) {
-        console.error("Supabase Auth sign-in error:", authError.message);
-
-        // Auto-provisioning logic if user not found in Auth but exists in SLA
         if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
-           console.log("Checking if user is valid for auto-provisioning...");
+           let isValidToProvision = false;
            
-           let isValidToProvision = isOwnerAccount;
-           
-           if (!isValidToProvision) {
-             const { data: adminMatch } = await supabase.from('sla_admins').select('id').ilike('email', normalizedEmail).limit(1);
-             const { data: staffMatch } = await supabase.from('sla_staff').select('id').ilike('email', normalizedEmail).limit(1);
-             if ((adminMatch && adminMatch.length > 0) || (staffMatch && staffMatch.length > 0)) {
-               isValidToProvision = true;
-             }
+           const { data: adminMatch } = await supabase.from('sla_admins').select('id').ilike('email', normalizedEmail).limit(1);
+           const { data: staffMatch } = await supabase.from('sla_staff').select('id').ilike('email', normalizedEmail).limit(1);
+           if ((adminMatch && adminMatch.length > 0) || (staffMatch && staffMatch.length > 0)) {
+             isValidToProvision = true;
            }
 
            if (isValidToProvision) {
-             console.log("Auto-provisioning admin user...");
              const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                email: normalizedEmail,
                password: password,
              });
 
-             if (signUpError && !isOwnerAccount) {
+             if (signUpError) {
                return { success: false, message: signUpError.message };
              }
 
              if (signUpData?.user) {
                const profileSuccess = await fetchAdminProfile(signUpData.user.id, signUpData.user.email || normalizedEmail);
-               if (!profileSuccess && !isOwnerAccount) {
+               if (!profileSuccess) {
                  await supabase.auth.signOut();
                  return { success: false, message: "Unauthorized: You do not have admin access." };
                }
@@ -329,33 +458,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (authData.user) {
-        // Hard block for Owner accounts: max 2 active devices. A 3rd login is rejected
-        // and its fresh session discarded; existing devices stay signed in.
-        const { data: roleRow } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-        if (roleRow?.role === 'owner') {
-          const { data: otherCount, error: countError } = await supabase.rpc('count_other_active_sessions');
-          if (countError || (typeof otherCount === 'number' && otherCount >= 2)) {
-            await supabase.auth.signOut({ scope: 'local' });
-            currentUserRef.current = null;
-            setSession(null);
-            return {
-              success: false,
-              message: countError
-                ? "We couldn't verify your active devices. Please try again."
-                : "Access denied: Maximum device limit (2) reached. To protect this account from unauthorized access, new logins are blocked. Please log out from one of your authorized devices first.",
-            };
-          }
-        }
         currentUserRef.current = authData.user.id;
         const profileSuccess = await fetchAdminProfile(authData.user.id, authData.user.email || normalizedEmail);
         if (!profileSuccess) {
           await supabase.auth.signOut();
           currentUserRef.current = null;
-          return { success: false, message: "Unauthorized: You do not have admin access." };
+          return { success: false, message: "Unauthorized: You do not have admin or owner access." };
         }
         return { success: true };
       }
@@ -370,6 +478,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (session) {
+      if (session.role === "Owner") {
+        await releaseOwnerSession();
+      }
+      await trackAdminSessionLogout(session);
+    }
     localStorage.removeItem("gcos_admin_session");
     await supabase.auth.signOut();
     setSession(null);

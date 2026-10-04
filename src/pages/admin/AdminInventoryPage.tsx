@@ -440,7 +440,7 @@ export default function AdminInventoryPage() {
                 <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                   User: {session?.email || 'Not Logged In'}
                 </span>
-                {session?.email?.toLowerCase() === 'heathercarpe34@gmail.com' && (
+                {(session?.role === 'Owner' || session?.email?.toLowerCase() === 'heathercarpe34@gmail.com') && (
                   <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
                     Owner Access
                   </span>
