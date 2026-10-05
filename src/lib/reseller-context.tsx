@@ -79,6 +79,16 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
     }, 15000);
 
     let channelsSetupUserId: string | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    const triggerFullReload = async (uid: string) => {
+      if (!mounted) return;
+      try {
+        await fetchProfile(uid, '', true, true);
+      } catch (e) {
+        console.warn("[RESELLER] Realtime reload error:", e);
+      }
+    };
 
     const setupRealtimeChannels = (uid: string) => {
       if (channelsSetupUserId === uid) return;
@@ -91,149 +101,66 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
       if (shopChannel) supabase.removeChannel(shopChannel);
       if (ordersChannel) supabase.removeChannel(ordersChannel);
 
-      // Setup real-time listener for the reseller profile
+      // Setup real-time listeners for all reseller-related tables
       profileChannel = supabase
-        .channel(`public:reseller_profiles:${uid}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reseller_profiles', filter: `id=eq.${uid}` }, (payload) => {
-          const profileData = payload.new as any;
-          if (profileData && mounted) {
-            setReseller(prev => {
-              if (!prev) return null;
-              
-              let custom: CustomSettings = {};
-              try {
-                if (profileData.payment_method) {
-                  custom = JSON.parse(profileData.payment_method as string) as CustomSettings;
-                }
-              } catch (e) {
-                console.error("Error parsing payment_method:", e);
-              }
-
-              let bankInfoObj = { bankName: '', accountName: '', accountNumber: '' };
-              const rawBankInfo = custom.bankInfo;
-              if (rawBankInfo) {
-                try {
-                  bankInfoObj = typeof rawBankInfo === 'string' ? JSON.parse(rawBankInfo) : rawBankInfo;
-                } catch (e) {
-                  console.error("Error parsing bankInfo:", e);
-                }
-              }
-
-              const newTotalEarnings = Math.max(Number(profileData.total_earnings || 0), prev.totalEarnings || 0);
-
-              return {
-                ...prev,
-                resellerId: profileData.reseller_id || 0,
-                phone: custom.phone || profileData.phone || prev.phone || '',
-                profilePicture: custom.profilePicture || profileData.profile_picture || '',
-                shopName: profileData.shop_name || 'My Shop',
-                shopSlug: profileData.shop_slug || '',
-                shopLogo: custom.shopLogo || profileData.shop_logo || '',
-                shopHeroBanner: custom.shopHeroBanner || profileData.shop_hero_banner || '',
-                storeTheme: (custom.storeTheme as StoreTheme) || profileData.store_theme || 'minimal',
-                verified: profileData.verified || false,
-                balance: Number(profileData.balance || 0),
-                pendingBalance: Number(profileData.pending_balance || 0),
-                unpickedBalance: Number(profileData.unpicked_balance || 0),
-                totalEarnings: Number(newTotalEarnings.toFixed(2)),
-                usdtAddress: custom.usdtAddress || '',
-                bankInfo: bankInfoObj,
-              };
-            });
-          }
+        .channel(`rt:reseller_profiles:${uid}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reseller_profiles', filter: `id=eq.${uid}` }, () => {
+          console.log("[RESELLER_RT] reseller_profiles updated in DB, syncing state...");
+          void triggerFullReload(uid);
         })
         .subscribe();
 
-      // Setup real-time listener for orders to dynamically update collected profit and order counts
-      ordersChannel = supabase
-        .channel(`public:orders:reseller:${uid}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `reseller_id=eq.${uid}` }, async () => {
-          try {
-            const { data: updatedOrders } = await supabase
-              .from('orders')
-              .select('profit,profits,status')
-              .eq('reseller_id', uid);
-
-            if (updatedOrders && mounted) {
-              const completedProfit = updatedOrders
-                .filter(r => String(r.status || '').toLowerCase() === 'completed')
-                .reduce((sum, row) => sum + Number(row.profit ?? row.profits ?? 0), 0);
-
-              setReseller(prev => {
-                if (!prev) return null;
-                const bestTotal = Math.max(completedProfit, prev.totalEarnings || 0);
-                return {
-                  ...prev,
-                  totalOrders: updatedOrders.length,
-                  totalEarnings: Number(bestTotal.toFixed(2)),
-                };
-              });
-            }
-          } catch (err) {
-            console.warn('[RESELLER] Realtime order profit update error:', err);
-          }
-        })
-        .subscribe();
-
-      // Setup real-time listener for user data
-      userChannel = supabase
-        .channel(`public:users:${uid}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${uid}` }, (payload) => {
-          const userData = payload.new as any;
-          if (userData && mounted) {
-            setReseller(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                firstName: userData.first_name || '',
-                lastName: userData.last_name || '',
-                email: userData.email || '',
-              };
-            });
-          }
-        })
-        .subscribe();
-
-      // Setup real-time listener for product selection
-      selectionChannel = supabase
-        .channel(`public:reseller_product_selection:${uid}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reseller_product_selection', filter: `reseller_id=eq.${uid}` }, async () => {
-           const { data: selectionData } = await supabase
-             .from('reseller_product_selection')
-             .select('product_id')
-             .eq('reseller_id', uid);
-           
-           if (selectionData && mounted) {
-             const selectedProductIds = selectionData.map(d => d.product_id);
-             setReseller(prev => {
-               if (!prev) return null;
-               return { ...prev, selectedProductIds };
-             });
-           }
-        })
-        .subscribe();
-
-      // Setup real-time listener for retail_shops
       shopChannel = supabase
-        .channel(`public:retail_shops:${uid}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'retail_shops', filter: `id=eq.${uid}` }, (payload) => {
-          const shopData = payload.new as Record<string, unknown>;
-          if (shopData && mounted) {
-            setReseller(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                starRating: shopData.star_rating as number || 2.0,
-                creditScore: shopData.credit_score as number || 100,
-                isSuspended: shopData.is_suspended as boolean || false,
-                level: shopData.level as string || prev.level || "VIP-0",
-                productLimit: shopData.product_limit as number || 20,
-              };
-            });
-          }
+        .channel(`rt:retail_shops:${uid}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'retail_shops', filter: `id=eq.${uid}` }, () => {
+          console.log("[RESELLER_RT] retail_shops updated in DB, syncing state...");
+          void triggerFullReload(uid);
+        })
+        .subscribe();
+
+      userChannel = supabase
+        .channel(`rt:users:${uid}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${uid}` }, () => {
+          console.log("[RESELLER_RT] users updated in DB, syncing state...");
+          void triggerFullReload(uid);
+        })
+        .subscribe();
+
+      selectionChannel = supabase
+        .channel(`rt:selection:${uid}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reseller_product_selection', filter: `reseller_id=eq.${uid}` }, () => {
+          console.log("[RESELLER_RT] reseller_product_selection updated in DB, syncing state...");
+          void triggerFullReload(uid);
+        })
+        .subscribe();
+
+      ordersChannel = supabase
+        .channel(`rt:orders:${uid}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `reseller_id=eq.${uid}` }, () => {
+          console.log("[RESELLER_RT] orders updated in DB, syncing state...");
+          void triggerFullReload(uid);
         })
         .subscribe();
     };
+
+    const onFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && currentUserRef.current) {
+        console.log("[RESELLER] Tab/Window focused, refreshing reseller data from database...");
+        void triggerFullReload(currentUserRef.current);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocusOrVisible);
+      document.addEventListener('visibilitychange', onFocusOrVisible);
+    }
+
+    // Polling fallback every 10 seconds while logged in
+    pollInterval = setInterval(() => {
+      if (currentUserRef.current && mounted) {
+        void triggerFullReload(currentUserRef.current);
+      }
+    }, 10000);
 
     const initializeResellerSession = async () => {
       try {
@@ -291,6 +218,11 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
+      if (pollInterval) clearInterval(pollInterval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocusOrVisible);
+        document.removeEventListener('visibilitychange', onFocusOrVisible);
+      }
       subscription.unsubscribe();
       if (profileChannel) supabase.removeChannel(profileChannel);
       if (userChannel) supabase.removeChannel(userChannel);
@@ -302,13 +234,15 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
 
   const currentProfileFetch = useRef<{ uid: string, promise: Promise<boolean> } | null>(null);
 
-  const fetchProfile = async (userId: string, email: string): Promise<boolean> => {
-    if (currentProfileFetch.current?.uid === userId) {
+  const fetchProfile = async (userId: string, email: string, force = false, silent = false): Promise<boolean> => {
+    if (!force && currentProfileFetch.current?.uid === userId) {
       console.log(`[RESELLER_CONTEXT] Returning existing fetch promise for UID: ${userId}`);
       return currentProfileFetch.current.promise;
     }
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
 
     const fetchPromise = (async (): Promise<boolean> => {
       console.log(`[RESELLER_CONTEXT] Fetching profile for UID: ${userId}, Email: ${email}`);
@@ -990,7 +924,7 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (reseller) {
-      await fetchProfile(reseller.id, reseller.email);
+      await fetchProfile(reseller.id, reseller.email, true, true);
     }
   };
 

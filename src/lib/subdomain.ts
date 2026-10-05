@@ -47,6 +47,22 @@ export function shouldShowPortalSwitcher(): boolean {
   return false;
 }
 
+export function setPortalOverride(portal: PortalType): void {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("dev_portal_override", portal);
+    }
+  } catch (e) { /* ignore */ }
+}
+
+export function clearPortalOverride(): void {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("dev_portal_override");
+    }
+  } catch (e) { /* ignore */ }
+}
+
 export function detectPortal(): PortalType {
   // 0. Manual override (Highest priority for dev)
   try {
