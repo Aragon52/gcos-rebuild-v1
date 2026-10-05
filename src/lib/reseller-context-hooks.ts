@@ -107,13 +107,7 @@ export function getLevelByDeposit(
     }
   }
   
-  // Only sanitize for NEWLY registered resellers on or after the effective date.
-  // Existing resellers who were registered before the cutoff and set as VIP-1 keep their level intact.
-  const sanitizedLevelNum = (isNew && currentLevelNum === 1 && qualificationAmount < 1000) 
-    ? 0 
-    : currentLevelNum;
-  
-  const newLevelIndex = Math.max(sanitizedLevelNum, metLevelIndex);
+  const newLevelIndex = Math.max(currentLevelNum, metLevelIndex);
   return VIP_LEVELS[newLevelIndex] || VIP_LEVELS[0];
 }
 

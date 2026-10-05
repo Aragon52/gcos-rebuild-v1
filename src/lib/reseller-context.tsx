@@ -262,7 +262,7 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
           supabase.from('reseller_profiles').select('*').eq('id', userId).maybeSingle(),
           supabase.from('retail_shops').select('*').eq('id', userId).maybeSingle(),
           supabase.from('reseller_product_selection').select('product_id').eq('reseller_id', userId),
-          supabase.from('orders').select('profit,profits,status').eq('reseller_id', userId),
+          supabase.from('orders').select('id,profit,profits,status,total_amount,total_cost').eq('reseller_id', userId),
         ]);
 
         let userData = userRes.data;
@@ -409,13 +409,8 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         const currentLevelLabel = (currentShopData?.level as string) || (profileData?.level as string) || "VIP-0";
         const levelInfo = getLevelByDeposit(qualificationFunds, currentLevelLabel, registrationDate, availableBalance);
 
-        // Auto-heal dirty database entries ONLY for NEWLY registered resellers (registered on/after effective date)
-        // Existing resellers registered before the cutoff date keep their existing VIP 1 level intact
-        const isNewReseller = isNewResellerPromotionRuleActive(registrationDate);
-        if (isNewReseller && qualificationFunds < 1000 && ((profileData.level === 'VIP 1' || profileData.level === 'VIP-1' || profileData.level === '1') || (currentShopData?.level === 'VIP 1' || currentShopData?.level === 'VIP-1' || currentShopData?.level === '1'))) {
-          supabase.from('reseller_profiles').update({ level: 'VIP-0', product_limit: 20 }).eq('id', userId).then(() => {}, () => {});
-          supabase.from('retail_shops').update({ level: 'VIP-0', product_limit: 20 }).eq('id', userId).then(() => {}, () => {});
-        } else if (levelInfo.level !== currentLevelLabel && qualificationFunds >= 1000) {
+        // Auto-upgrade VIP tier if qualification funds meet higher tier, but never demote existing configured level
+        if (levelInfo.level !== currentLevelLabel && qualificationFunds >= 1000) {
           supabase.from('reseller_profiles').update({ level: levelInfo.level, product_limit: levelInfo.productLimit, updated_at: new Date().toISOString() }).eq('id', userId).then(() => {}, () => {});
           supabase.from('retail_shops').upsert({ id: userId, level: levelInfo.level, product_limit: levelInfo.productLimit }, { onConflict: 'id' }).then(() => {}, () => {});
         }
@@ -442,7 +437,7 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         const pendingAmount = orderRows
           .filter((r: Record<string, unknown>) => {
             const st = String(r.status || '').toLowerCase();
-            return st === 'pending' || st === 'processing';
+            return st === 'pending' || st === 'processing' || st === 'unpicked';
           })
           .reduce((sum: number, row: Record<string, unknown>) => sum + Number(row.total_amount ?? row.total_cost ?? 0), 0);
 
@@ -450,15 +445,10 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         const resolvedTotalEarnings = Number(Math.max(profileTotalEarnings, completedProfit).toFixed(2));
 
         const profilePendingBalance = Number(profileData.pending_balance || 0);
-        // If there are orders and 0 ongoing, or if ongoing sum differs, use dynamically verified ongoing amount
-        const resolvedPendingBalance = orderRows.length === 0 && profilePendingBalance > 0
-          ? 0
-          : (orderRows.length > 0 ? ongoingAmount : profilePendingBalance);
+        const resolvedPendingBalance = orderRows.length > 0 ? Number(ongoingAmount.toFixed(2)) : profilePendingBalance;
 
         const profileUnpickedBalance = Number(profileData.unpicked_balance || 0);
-        const resolvedUnpickedBalance = orderRows.length === 0 && profileUnpickedBalance > 0
-          ? 0
-          : (orderRows.length > 0 ? pendingAmount : profileUnpickedBalance);
+        const resolvedUnpickedBalance = orderRows.length > 0 ? Number(pendingAmount.toFixed(2)) : profileUnpickedBalance;
 
         // Auto-synchronize discrepancies back to DB in background
         const dbSyncUpdates: Record<string, unknown> = {};
@@ -469,7 +459,7 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         if (Math.abs(profilePendingBalance - resolvedPendingBalance) > 0.01) {
           dbSyncUpdates.pending_balance = resolvedPendingBalance;
         }
-        if (Math.abs(profileUnpickedBalance - resolvedUnpickedBalance) > 0.01 && orderRows.length === 0) {
+        if (Math.abs(profileUnpickedBalance - resolvedUnpickedBalance) > 0.01) {
           dbSyncUpdates.unpicked_balance = resolvedUnpickedBalance;
         }
 

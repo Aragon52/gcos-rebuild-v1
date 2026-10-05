@@ -80,14 +80,8 @@ export const calculateVipLevel = (
     
   const newCalculatedLevel = metTier ? metTier.level : 0;
   
-  // Only sanitize for NEWLY registered resellers after the effective cutoff date.
-  // Existing resellers registered before the cutoff keep their VIP 1 status intact.
-  const effectiveCurrentLevel = (isNew && currentLevel === 1 && qualificationAmount < 1000) 
-    ? 0 
-    : currentLevel;
-  
-  // Return higher of the two to prevent demotion
-  return Math.max(effectiveCurrentLevel, newCalculatedLevel);
+  // Return higher of current level and newly calculated level to prevent demotion
+  return Math.max(currentLevel, newCalculatedLevel);
 };
 
 /**
