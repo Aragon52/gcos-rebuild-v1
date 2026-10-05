@@ -575,6 +575,11 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
     } catch (e: unknown) {
       console.error("[RESELLER_CONTEXT] Login error details:", (e as Error).message);
       setLoading(false);
+      // Surface connection problems instead of reporting them as wrong credentials
+      const err = e as { name?: string; message?: string };
+      if (err?.name === "AuthRetryableFetchError" || err?.message?.includes("Failed to fetch")) {
+        throw new Error("Cannot reach the server right now. Please try again in a few minutes.");
+      }
       return false;
     }
   };

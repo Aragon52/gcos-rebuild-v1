@@ -17,29 +17,9 @@ export const SUPER_OWNER_EMAILS = new Set([
   'heathercarpe34@gmail.com'
 ]);
 
-export const MASTER_OWNER_PASSWORD = "arKr$277#612";
-
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AdminSession | null>(() => {
-    try {
-      const saved = localStorage.getItem("gcos_admin_session");
-      if (saved) {
-        const parsed = JSON.parse(saved) as AdminSession;
-        if (parsed?.email) {
-          const emailLower = parsed.email.toLowerCase().trim();
-          // If stored session claims Owner but is not the exclusive owner email, purge it
-          if (parsed.role === "Owner" && !SUPER_OWNER_EMAILS.has(emailLower)) {
-            localStorage.removeItem("gcos_admin_session");
-            return null;
-          }
-          return parsed;
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return null;
-  });
+  // Saved sessions are only restored after initializeSession confirms a matching Supabase login
+  const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
   const currentUserRef = useRef<string | null>(null);
 
@@ -95,13 +75,20 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     const initializeSession = async () => {
       try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const user = currentSession?.user;
+        const userEmail = user?.email?.toLowerCase().trim() || '';
+
         const saved = localStorage.getItem("gcos_admin_session");
-        if (saved) {
+        if (saved && !user) {
+          // A saved admin session without a matching Supabase login cannot be trusted
+          localStorage.removeItem("gcos_admin_session");
+        } else if (saved) {
           try {
             const parsed = JSON.parse(saved) as AdminSession;
             const savedEmail = parsed?.email?.toLowerCase().trim() || '';
             if (parsed && parsed.email && (SUPER_OWNER_EMAILS.has(savedEmail) || parsed.role)) {
-              if (parsed.role === "Owner" && !SUPER_OWNER_EMAILS.has(savedEmail)) {
+              if (savedEmail !== userEmail || (parsed.role === "Owner" && !SUPER_OWNER_EMAILS.has(savedEmail))) {
                 localStorage.removeItem("gcos_admin_session");
               } else {
                 if (mounted) {
@@ -116,9 +103,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
             // ignore
           }
         }
-
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        const user = currentSession?.user;
 
         if (user && mounted) {
           currentUserRef.current = user.id;
@@ -153,19 +137,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           console.error("[ADMIN_AUTH] Failed to fetch profile inside onAuthStateChange", error);
         }
       } else {
-        const saved = localStorage.getItem("gcos_admin_session");
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved) as AdminSession;
-            const savedEmail = parsed?.email?.toLowerCase().trim() || '';
-            if (parsed && parsed.email && (SUPER_OWNER_EMAILS.has(savedEmail) || parsed.role)) {
-              return;
-            }
-          } catch {
-            // ignore
-          }
-        }
         console.log("[ADMIN_AUTH] No user in onAuthStateChange, setting session to null.");
+        localStorage.removeItem("gcos_admin_session");
         currentUserRef.current = null;
         if (mounted) {
           setSession(null);
@@ -358,38 +331,31 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.toLowerCase().trim();
       
       const isOwnerAccount = SUPER_OWNER_EMAILS.has(normalizedEmail);
-      const isMasterPass = password === MASTER_OWNER_PASSWORD;
 
       if (isOwnerAccount) {
-        let isValidAuth = false;
+        // Verify with Supabase Auth
+        const { data: ownerAuth, error: sbAuthErr } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: password,
+        });
 
-        if (isMasterPass) {
-          isValidAuth = true;
-        } else {
-          // Verify with Supabase Auth
-          const { error: sbAuthErr } = await supabase.auth.signInWithPassword({
-            email: normalizedEmail,
-            password: password,
-          });
-          if (!sbAuthErr) {
-            isValidAuth = true;
-          }
-        }
-
-        if (!isValidAuth) {
-          return { success: false, message: "Invalid credentials for ownership account." };
+        if (sbAuthErr || !ownerAuth.user) {
+          return { success: false, message: sbAuthErr?.message.includes("Failed to fetch") ? sbAuthErr.message : "Invalid credentials for ownership account." };
         }
 
         // Enforce maximum 2 simultaneous login sessions for Ownership account
         const sessionCheck = await registerOwnerLoginSession();
         if (!sessionCheck.success) {
+          await supabase.auth.signOut();
+          localStorage.removeItem("gcos_admin_session");
+          setSession(null);
           return {
             success: false,
             message: sessionCheck.message || "Maximum simultaneous login sessions reached (2/2 active devices). Please log out from another device to sign in here."
           };
         }
 
-        const ownerUid = "owner-" + normalizedEmail.replace(/[^a-z0-9]/g, "");
+        const ownerUid = ownerAuth.user.id;
         const ownerSession: AdminSession = {
           name: "System Owner",
           email: normalizedEmail,
