@@ -94,7 +94,7 @@ If you use Netlify DNS, Netlify creates the records automatically when you add t
 The single function produced by the Nitro `netlify` preset handles routing. The wildcard rewrite is already checked in at `public/_redirects` and is copied to `dist/_redirects` during the build:
 
 ```
-/*    /.netlify/functions/server   200
+/*    /.netlify/functions-internal/server   200
 ```
 
 Do not replace it with a static `index.html` fallback, and do not add an `index.html` to `public/`: Netlify serves static files before applying this rewrite, so a `public/index.html` would replace the server-rendered homepage with a blank page.
@@ -129,7 +129,7 @@ Path-based access still works on the main domain (`globalcart-onlineshop.com/adm
 ## Troubleshooting
 
 - **Portal loads the wrong layout** — check that the domain aliases are on the same Netlify site and that HTTPS is enabled for each alias.
-- **404s on admin/reseller paths** — make sure the `/* → /.netlify/functions/server` redirect is active.
+- **404s on admin/reseller paths** — make sure the `/* → /.netlify/functions-internal/server` redirect is active.
 - **Cloudflare "Just a moment..." page or 403 on a domain** — the DNS record for that host is proxied through Cloudflare (orange cloud). In Cloudflare DNS, switch the apex, `www`, `admin`, and `reseller` records to **DNS only** (grey cloud) so traffic goes straight to Netlify.
 - **Build fails** — confirm Node 22 is selected and `NITRO_PRESET=netlify` is set.
 - **Supabase auth errors** — double-check `VITE_SUPABASE_PUBLISHABLE_KEY` matches the anon key exactly.
