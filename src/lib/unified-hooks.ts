@@ -171,14 +171,22 @@ export function useUnifiedResellers() {
 
           const totalDeposits = Number(profileData.total_deposits || 0);
           const totalWithdrawals = Number(profileData.total_withdrawals || 0);
+          const availableBalance = Number(profileData.balance || 0);
           const netDeposits = totalDeposits - totalWithdrawals;
           const regDate = (profileData.registration_date as string) || (userData.created_at as string) || '';
           
           const rawLvlStr = (retailShopData.level as string) || (profileData.level as string) || 'VIP-0';
           const explicitLvlNum = parseInt(String(rawLvlStr).match(/\d+/)?.[0] || '0', 10);
-          const resolvedLvlNum = calculateVipLevel(netDeposits, explicitLvlNum, regDate);
+          const qualificationFunds = Math.max(netDeposits, totalDeposits, availableBalance);
+          const resolvedLvlNum = calculateVipLevel(qualificationFunds, explicitLvlNum, regDate, availableBalance);
           const resolvedLevel = `VIP-${resolvedLvlNum}`;
           const resolvedProductLimit = (retailShopData.product_limit as number) || getVipProductLimit(resolvedLvlNum, regDate);
+
+          // Auto-heal dirty database entries in background if level has upgraded via balance/deposits
+          if (resolvedLvlNum > explicitLvlNum) {
+            supabase.from('reseller_profiles').update({ level: resolvedLevel, updated_at: new Date().toISOString() }).eq('id', profileData.id).then(() => {}, () => {});
+            supabase.from('retail_shops').upsert({ id: profileData.id, level: resolvedLevel, product_limit: resolvedProductLimit }, { onConflict: 'id' }).then(() => {}, () => {});
+          }
 
           return {
             id: profileData.id,

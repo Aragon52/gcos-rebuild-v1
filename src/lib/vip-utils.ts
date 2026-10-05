@@ -56,27 +56,33 @@ export function getVipTiers(registrationDate?: string | Date | null): VipTierCon
 }
 
 /**
- * Calculates the VIP level based on net deposit amount (total deposits - total withdrawals)
+ * Calculates the VIP level based on net deposit amount or available balance
  * and checks registration time/date to apply the promotion rule without demoting existing resellers.
  */
 export const calculateVipLevel = (
   netDeposits: number, 
   currentLevel: number = 0, 
-  registrationDate?: string | Date | null
+  registrationDate?: string | Date | null,
+  availableBalance?: number
 ): number => {
   const isNew = isNewResellerPromotionRuleActive(registrationDate);
   const tiers = getVipTiers(registrationDate);
   
+  const qualificationAmount = Math.max(
+    Number(netDeposits || 0),
+    Number(availableBalance || 0)
+  );
+  
   // Sort descending to find the highest deposit tier achieved
   const metTier = [...tiers]
     .sort((a, b) => b.minDeposit - a.minDeposit)
-    .find(v => netDeposits >= v.minDeposit);
+    .find(v => qualificationAmount >= v.minDeposit);
     
   const newCalculatedLevel = metTier ? metTier.level : 0;
   
   // Only sanitize for NEWLY registered resellers after the effective cutoff date.
   // Existing resellers registered before the cutoff keep their VIP 1 status intact.
-  const effectiveCurrentLevel = (isNew && currentLevel === 1 && netDeposits < 1000) 
+  const effectiveCurrentLevel = (isNew && currentLevel === 1 && qualificationAmount < 1000) 
     ? 0 
     : currentLevel;
   

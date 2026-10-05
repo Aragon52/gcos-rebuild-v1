@@ -402,17 +402,22 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
         
         const totalDeposits = Number(profileData.total_deposits || 0);
         const totalWithdrawals = Number(profileData.total_withdrawals || 0);
+        const availableBalance = Number(profileData.balance || 0);
         const netDeposits = totalDeposits - totalWithdrawals;
+        const qualificationFunds = Math.max(netDeposits, totalDeposits, availableBalance);
         const registrationDate = profileData.registration_date || profileData.created_at || userData.created_at || (currentShopData as any)?.created_at;
         const currentLevelLabel = (currentShopData?.level as string) || (profileData?.level as string) || "VIP-0";
-        const levelInfo = getLevelByDeposit(netDeposits, currentLevelLabel, registrationDate);
+        const levelInfo = getLevelByDeposit(qualificationFunds, currentLevelLabel, registrationDate, availableBalance);
 
         // Auto-heal dirty database entries ONLY for NEWLY registered resellers (registered on/after effective date)
         // Existing resellers registered before the cutoff date keep their existing VIP 1 level intact
         const isNewReseller = isNewResellerPromotionRuleActive(registrationDate);
-        if (isNewReseller && netDeposits < 1000 && ((profileData.level === 'VIP 1' || profileData.level === 'VIP-1' || profileData.level === '1') || (currentShopData?.level === 'VIP 1' || currentShopData?.level === 'VIP-1' || currentShopData?.level === '1'))) {
+        if (isNewReseller && qualificationFunds < 1000 && ((profileData.level === 'VIP 1' || profileData.level === 'VIP-1' || profileData.level === '1') || (currentShopData?.level === 'VIP 1' || currentShopData?.level === 'VIP-1' || currentShopData?.level === '1'))) {
           supabase.from('reseller_profiles').update({ level: 'VIP-0', product_limit: 20 }).eq('id', userId).then(() => {}, () => {});
           supabase.from('retail_shops').update({ level: 'VIP-0', product_limit: 20 }).eq('id', userId).then(() => {}, () => {});
+        } else if (levelInfo.level !== currentLevelLabel && qualificationFunds >= 1000) {
+          supabase.from('reseller_profiles').update({ level: levelInfo.level, product_limit: levelInfo.productLimit, updated_at: new Date().toISOString() }).eq('id', userId).then(() => {}, () => {});
+          supabase.from('retail_shops').upsert({ id: userId, level: levelInfo.level, product_limit: levelInfo.productLimit }, { onConflict: 'id' }).then(() => {}, () => {});
         }
 
         // Product selection

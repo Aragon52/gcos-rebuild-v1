@@ -214,17 +214,18 @@ export default function ARSPaymentInfoPage() {
 
       let finalLevelToSet = data.updates.level as number | undefined;
 
-      // Auto-calculate VIP level if deposits or withdrawals change
-      if (data.updates.total_deposits !== undefined || data.updates.total_withdrawals !== undefined) {
+      // Auto-calculate VIP level if deposits, withdrawals, or balance change
+      if (data.updates.total_deposits !== undefined || data.updates.total_withdrawals !== undefined || data.updates.balance !== undefined) {
         try {
-          const { data: existing } = await supabase.from('reseller_profiles').select('total_deposits, total_withdrawals, level, registration_date, created_at').eq('id', data.id).single();
+          const { data: existing } = await supabase.from('reseller_profiles').select('balance, total_deposits, total_withdrawals, level, registration_date, created_at').eq('id', data.id).single();
           if (existing) {
             const regDate = (existing as any).registration_date || (existing as any).created_at;
             const finalDep = data.updates.total_deposits !== undefined ? Number(data.updates.total_deposits) : Number(existing.total_deposits || 0);
             const finalWith = data.updates.total_withdrawals !== undefined ? Number(data.updates.total_withdrawals) : Number(existing.total_withdrawals || 0);
+            const finalBal = data.updates.balance !== undefined ? Number(data.updates.balance) : Number(existing.balance || 0);
             const netDeposits = finalDep - finalWith;
             const existingLevelNum = Number(String(existing.level || '0').match(/\d+/)?.[0] || '0');
-            const calculatedLevel = calculateVipLevel(netDeposits, existingLevelNum, regDate);
+            const calculatedLevel = calculateVipLevel(Math.max(netDeposits, finalDep, finalBal), existingLevelNum, regDate, finalBal);
             
             // Override passed level if calculated level is higher
             if (finalLevelToSet === undefined || calculatedLevel > finalLevelToSet) {
@@ -311,10 +312,11 @@ export default function ARSPaymentInfoPage() {
       const totalEarnings = r.totalEarnings || 0;
       const totalOrders = r.totalOrders || 0;
 
-      // Use the actual stored level, do not calculate it automatically on the fly to avoid mismatch
-      // with other pages like Retail Shops.
-      const storedLevel = Number(String(r.level).match(/\d+/)?.[0] || '0');
-      const finalLevel = storedLevel;
+      const qualificationFunds = Math.max(totalDeposits - totalWithdrawals, totalDeposits, availableBalance);
+      const regDate = (r.registrationDate as string) || '';
+      const explicitLevel = Number(String(r.level).match(/\d+/)?.[0] || '0');
+      const calculatedLevel = calculateVipLevel(qualificationFunds, explicitLevel, regDate, availableBalance);
+      const finalLevel = Math.max(explicitLevel, calculatedLevel);
 
       return {
         id: resellerId,
@@ -329,7 +331,7 @@ export default function ARSPaymentInfoPage() {
         totalWithdrawals,
         totalEarnings,
         totalOrders,
-        profitMargin: getVipMarginProfit(finalLevel) * 100,
+        profitMargin: getVipMarginProfit(finalLevel, regDate) * 100,
         withdrawalInfo: {
           usdtAddress: r.usdtAddress,
           bankName: r.bankInfo?.bankName,
