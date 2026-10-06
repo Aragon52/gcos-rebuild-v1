@@ -78,8 +78,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
 
-    // Role-based access control
+    // Role & Permission-based access control
     const role = session.role;
+    const permissions = session.permissions;
     // Canonical path resolution for route checking
     const path = location.pathname.replace(/\/$/, "") || "/admin";
     let canonical = path;
@@ -90,10 +91,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       canonical = canonical === "/" ? "/admin" : `/admin${canonical}`;
     }
 
-    if (!isPathAllowed(role, canonical)) {
-      console.warn(`[ADMIN_LAYOUT] Path not allowed: ${canonical} for role: ${role}. Signing out.`);
-      toast.error("Access denied — you do not have permission to view this page.");
-      signOut().then(() => navigate(adminPath("/admin/auth/sign-in"), { replace: true }));
+    if (!isPathAllowed(role, canonical, permissions)) {
+      console.warn(`[ADMIN_LAYOUT] Path not allowed: ${canonical} for role: ${role}. Redirecting.`);
+      toast.error("Access restricted: You do not have permission to access this page.");
+      navigate(adminPath("/admin"), { replace: true });
     }
   }, [location.pathname, session, navigate, signOut, loading]);
 

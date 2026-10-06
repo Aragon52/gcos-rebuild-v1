@@ -276,23 +276,25 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         };
 
         let accountId = (currentData as Record<string, unknown> | null)?.account_id as string | null || null;
+        let userPermissions: string[] | null = null;
         
-        if (!accountId) {
-          try {
-            const table = currentRole === 'admin' ? 'sla_admins' : 'sla_staff';
-            const field = currentRole === 'admin' ? 'account_id' : 'staff_id';
-            const { data: slaData } = await supabase
-              .from(table)
-              .select(field)
-              .ilike('email', normalizedEmail)
-              .limit(1);
-              
-            if (slaData && slaData.length > 0) {
-              accountId = slaData[0][field];
-            }
-          } catch {
-            // ignore
+        try {
+          const table = currentRole === 'admin' ? 'sla_admins' : 'sla_staff';
+          const field = currentRole === 'admin' ? 'account_id' : 'staff_id';
+          const { data: slaData } = await supabase
+            .from(table)
+            .select(`${field}, permissions`)
+            .ilike('email', normalizedEmail)
+            .limit(1);
+            
+          if (slaData && slaData.length > 0) {
+            accountId = (slaData[0] as Record<string, any>)[field];
+            userPermissions = Array.isArray((slaData[0] as Record<string, any>).permissions) 
+              ? (slaData[0] as Record<string, any>).permissions 
+              : null;
           }
+        } catch {
+          // ignore
         }
 
         const resolvedSession: AdminSession = {
@@ -300,7 +302,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           email: normalizedEmail,
           role: roleMapping[currentRole],
           accountId: accountId,
-          uid: userId
+          uid: userId,
+          permissions: userPermissions
         };
         setSession(resolvedSession);
         try {

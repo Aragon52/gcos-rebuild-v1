@@ -124,21 +124,26 @@ function transformNavGroups(groups: NavGroup[]): NavGroup[] {
   }));
 }
 
-function filterByRole(groups: NavGroup[], role: SLARole): NavGroup[] {
+function filterByPermissions(groups: NavGroup[], role: SLARole, permissions?: string[] | null): NavGroup[] {
   if (role === "Owner") return groups;
   return groups
     .map((g) => ({
       ...g,
       items: g.items
-        .filter((item) => !item.rawUrl || !OWNER_ONLY_PATHS.has(item.rawUrl))
+        .filter((item) => {
+          if (!item.rawUrl) return true;
+          return isPathAllowed(role, item.rawUrl, permissions);
+        })
         .map((item) => ({
           ...item,
-          children: item.children?.filter((c) => !c.rawUrl || !OWNER_ONLY_PATHS.has(c.rawUrl)),
+          children: item.children?.filter((c) => {
+            if (!c.rawUrl) return true;
+            return isPathAllowed(role, c.rawUrl, permissions);
+          }),
         }))
         .filter((item) => {
-          // If it has children, only keep it if children is not empty
           if (item.children) return item.children.length > 0;
-          return true;
+          return !item.rawUrl || isPathAllowed(role, item.rawUrl, permissions);
         }),
     }))
     .filter((g) => g.items.length > 0);
@@ -148,12 +153,13 @@ export function AppSidebar() {
   const location = useLocation();
   const { session } = useAdminAuth();
   const role = session?.role || "User";
+  const permissions = session?.permissions;
   const { open, setOpen, isMobile } = useSidebar();
 
   const navGroups = useMemo(() => {
     const transformed = transformNavGroups(canonicalNavGroups);
-    return filterByRole(transformed, role);
-  }, [role]);
+    return filterByPermissions(transformed, role, permissions);
+  }, [role, permissions]);
 
   // Expand on hover, fold back when the pointer leaves (desktop only).
   const handleMouseEnter = () => {

@@ -27,6 +27,7 @@ export interface DbSlaStaff {
   last_active: string;
   created_by_admin_id: string;
   department: string;
+  permissions?: string[];
 }
 
 export interface DbSystemSetting {
@@ -151,7 +152,9 @@ export interface LegacySlaStaff {
   joinedAt: string;
   lastActive: string;
   createdByAdminId: string;
+  rawAdminId: string;
   department: string;
+  permissions: string[];
 }
 
 export function dbStaffToLegacy(s: DbSlaStaff & { sla_admins?: { account_id: string } | null }): LegacySlaStaff {
@@ -172,7 +175,9 @@ export function dbStaffToLegacy(s: DbSlaStaff & { sla_admins?: { account_id: str
     joinedAt: s.joined_at,
     lastActive: s.last_active || "Never",
     createdByAdminId: adminIdResolved,
+    rawAdminId: s.created_by_admin_id || "",
     department: s.department ?? "Unassigned",
+    permissions: Array.isArray(s.permissions) ? s.permissions : [],
   };
 }
 

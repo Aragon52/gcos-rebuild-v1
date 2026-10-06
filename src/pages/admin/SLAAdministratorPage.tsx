@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { createClient } from "@supabase/supabase-js";
+import { PermissionManagerModal } from "@/components/admin/PermissionManagerModal";
 
 export default function SLAAdministratorPage() {
   const { data: dbAdmins } = useDbSlaAdmins();
@@ -51,6 +52,7 @@ export default function SLAAdministratorPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [creatingForAdmin, setCreatingForAdmin] = useState<LegacySlaAdmin | null>(null);
   const [adminToDelete, setAdminToDelete] = useState<LegacySlaAdmin | null>(null);
+  const [adminForPermissions, setAdminForPermissions] = useState<LegacySlaAdmin | null>(null);
   const { toast } = useToast();
 
   // Form state
@@ -282,6 +284,16 @@ export default function SLAAdministratorPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuItem 
+                                  className="gap-2 text-foreground font-medium"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAdminForPermissions(admin);
+                                  }}
+                                >
+                                  <ShieldCheck className="h-4 w-4 text-primary" />
+                                  Manage Page Permissions
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
                                   className="gap-2"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -364,6 +376,12 @@ export default function SLAAdministratorPage() {
             </div>
 
             <div className="px-5 space-y-2">
+              <button
+                onClick={() => setAdminForPermissions(selectedAdmin)}
+                className="w-full rounded-lg bg-primary/10 border border-primary/20 text-primary py-2.5 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-primary/15 transition-colors"
+              >
+                <ShieldCheck className="h-4 w-4" /> Manage Page Permissions
+              </button>
               <button
                 onClick={() => {
                   setCreatingForAdmin(selectedAdmin);
@@ -511,6 +529,14 @@ export default function SLAAdministratorPage() {
           </div>
         </div>
       )}
+
+      {/* Permission Manager Modal */}
+      <PermissionManagerModal
+        open={!!adminForPermissions}
+        onClose={() => setAdminForPermissions(null)}
+        accountType="admin"
+        account={adminForPermissions}
+      />
     </div>
   );
 }

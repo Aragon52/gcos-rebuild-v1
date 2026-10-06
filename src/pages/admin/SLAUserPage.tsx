@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useDbSlaStaff, dbStaffToLegacy, type LegacySlaStaff } from "@/hooks/use-db-sla";
 import { useAdminAccess } from "@/hooks/use-admin-access";
 import { resellerPath, resellerPrefix } from "@/lib/subdomain";
+import { useAdminAuth } from "@/lib/admin-auth-context-hooks";
+import { PermissionManagerModal } from "@/components/admin/PermissionManagerModal";
 import { Search, Mail, Phone, MoreVertical, X, Users, Copy, Link, Check, Trash2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { toast } from "sonner";
@@ -44,6 +46,10 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
 export default function SLAUserPage() {
   const { data: dbStaff } = useDbSlaStaff();
   const { canSeeAll, allowedStaffIds } = useAdminAccess();
+  const { session } = useAdminAuth();
+
+  const isOwner = session?.role === "Owner";
+  const isAdmin = session?.role === "Admin";
 
   const staffList = useMemo(() => {
     const all = (dbStaff ?? []).map(dbStaffToLegacy);
@@ -54,6 +60,15 @@ export default function SLAUserPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStaff, setSelectedStaff] = useState<LegacySlaStaff | null>(null);
   const [staffToDelete, setStaffToDelete] = useState<LegacySlaStaff | null>(null);
+  const [staffForPermissions, setStaffForPermissions] = useState<LegacySlaStaff | null>(null);
+
+  const canManageStaffPermissions = (staff: LegacySlaStaff) => {
+    if (isOwner) return true;
+    if (isAdmin) {
+      return staff.createdByAdminId === session?.accountId || allowedStaffIds.includes(staff.staffId);
+    }
+    return false;
+  };
 
   const filtered = staffList.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -246,6 +261,18 @@ export default function SLAUserPage() {
                             <MoreVertical className="h-4 w-4 text-muted-foreground" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
+                            {canManageStaffPermissions(staff) && (
+                              <DropdownMenuItem 
+                                className="gap-2 text-foreground font-medium"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setStaffForPermissions(staff);
+                                }}
+                              >
+                                <ShieldCheck className="h-4 w-4 text-primary" />
+                                Manage Page Permissions
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem 
                               className="gap-2"
                               onClick={(e) => {
@@ -362,6 +389,17 @@ export default function SLAUserPage() {
                   <span className="text-muted-foreground">Last Active</span>
                   <span className="text-foreground font-medium">{selectedStaff.lastActive}</span>
                 </div>
+
+                {canManageStaffPermissions(selectedStaff) && (
+                  <div className="pt-2">
+                    <button
+                      onClick={() => setStaffForPermissions(selectedStaff)}
+                      className="w-full rounded-lg bg-primary/10 border border-primary/20 text-primary py-2.5 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-primary/15 transition-colors"
+                    >
+                      <ShieldCheck className="h-4 w-4" /> Manage Page Permissions
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -387,6 +425,14 @@ export default function SLAUserPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Permission Manager Modal */}
+      <PermissionManagerModal
+        open={!!staffForPermissions}
+        onClose={() => setStaffForPermissions(null)}
+        accountType="staff"
+        account={staffForPermissions}
+      />
     </div>
   );
 }

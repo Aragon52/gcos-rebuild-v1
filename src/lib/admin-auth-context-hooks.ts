@@ -8,6 +8,7 @@ export interface AdminSession {
   role: SLARole;
   accountId: string | null;
   uid: string;
+  permissions?: string[] | null;
 }
 
 export const STAFF_ALLOWED_PATHS = new Set([
@@ -52,17 +53,25 @@ export const STAFF_ALLOWED_PATHS = new Set([
 
 export const OWNER_ONLY_PATHS = new Set([
   "/admin/sla/ownership",
+  "/admin/sla/administrator",
   "/admin/admin-sessions",
   "/admin/system/sessions",
 ]);
 
-export function isPathAllowed(role: SLARole, pathname: string): boolean {
+export function isPathAllowed(role: SLARole, pathname: string, permissions?: string[] | null): boolean {
   const p = pathname.replace(/\/$/, "") || "/admin";
-  if (p.startsWith("/admin/auth")) return true;
-  if (OWNER_ONLY_PATHS.has(p)) {
-    return role === "Owner";
+  if (role === "Owner") return true;
+  if (OWNER_ONLY_PATHS.has(p)) return false;
+
+  if (Array.isArray(permissions) && permissions.length > 0) {
+    const cleanPath = p.replace(/\/$/, "");
+    return permissions.some(allowed => {
+      const cleanAllowed = allowed.replace(/\/$/, "");
+      return cleanPath === cleanAllowed || cleanPath.startsWith(cleanAllowed + "/");
+    });
   }
-  if (role === "Owner" || role === "Admin") return true;
+
+  if (role === "Admin") return true;
   return STAFF_ALLOWED_PATHS.has(p);
 }
 
