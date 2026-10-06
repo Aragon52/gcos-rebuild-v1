@@ -3,14 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 
 const { Client } = pg;
 
-const host = process.env.PGHOST || 'db.hreotqowulxpchyxjlai.supabase.co';
+const host = process.env.PGHOST || `db.${process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID}.supabase.co`;
 const port = parseInt(process.env.PGPORT || '5432', 10);
 const user = process.env.PGUSER || 'postgres';
 const database = process.env.PGDATABASE || 'postgres';
-const password = process.env.PGPASSWORD || 'Aragon$27726&1226';
+const password = process.env.PGPASSWORD;
+if (!password) {
+  console.error('Missing PGPASSWORD environment variable.');
+  process.exit(1);
+}
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://hreotqowulxpchyxjlai.supabase.co';
-const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyZW90cW93dWx4cGNoeXhqbGFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5MzgxNTMsImV4cCI6MjA2MzUxNDE1M30.4i0kLgX04gS0eL2iE7j4Y2P4s3n2a1X9y5Q1b8c0W';
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 async function testDatabaseConnections() {
   console.log('====================================================');

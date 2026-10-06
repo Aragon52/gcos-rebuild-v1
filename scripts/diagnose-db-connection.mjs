@@ -6,13 +6,13 @@ import fs from 'fs';
 
 const { Client } = pg;
 
-const PROJECT_REF = process.env.SUPABASE_PROJECT_ID || 'hreotqowulxpchyxjlai';
-const DB_PASSWORD = process.env.PGPASSWORD || 'Aragon$27726&1226';
+const PROJECT_REF = process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID;
+const DB_PASSWORD = process.env.PGPASSWORD;
 const REGION = 'ap-southeast-2'; // AWS Sydney (detected via DNS/IP routing)
 const DIRECT_HOST = `db.${PROJECT_REF}.supabase.co`;
 const POOLER_HOST = `aws-0-${REGION}.pooler.supabase.com`;
 const REST_URL = `https://${PROJECT_REF}.supabase.co/rest/v1/`;
-const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyZW90cW93dWx4cGNoeXhqbGFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMDk5NTYsImV4cCI6MjA5NDc4NTk1Nn0.BAjcUlh_--eDtKwLAA51kDcoJPd0vujQ9sqBdM6K7EY';
+const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const logLines = [];
 function log(msg = '') {
@@ -199,7 +199,7 @@ async function run() {
   // Step 4: Direct PostgreSQL Handshake Attempts
   // A. Direct host on 5432 with standard user 'postgres'
   await testPostgresClient({
-    label: 'Direct Host (db.hreotqowulxpchyxjlai.supabase.co:5432)',
+    label: `Direct Host (db.${PROJECT_REF}.supabase.co:5432)`,
     host: DIRECT_HOST,
     port: 5432,
     user: 'postgres',
@@ -207,7 +207,7 @@ async function run() {
     timeoutMs: 6000,
   });
 
-  // B. Pooler host on 6543 (Transaction Mode) with user 'postgres.hreotqowulxpchyxjlai'
+  // B. Pooler host on 6543 (Transaction Mode) with user 'postgres.<project-ref>'
   await testPostgresClient({
     label: 'Transaction Pooler (aws-0-ap-southeast-2.pooler.supabase.com:6543)',
     host: POOLER_HOST,
@@ -217,7 +217,7 @@ async function run() {
     timeoutMs: 6000,
   });
 
-  // C. Pooler host on 5432 (Session Mode) with user 'postgres.hreotqowulxpchyxjlai'
+  // C. Pooler host on 5432 (Session Mode) with user 'postgres.<project-ref>'
   await testPostgresClient({
     label: 'Session Pooler (aws-0-ap-southeast-2.pooler.supabase.com:5432)',
     host: POOLER_HOST,

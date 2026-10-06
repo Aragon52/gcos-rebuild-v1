@@ -7,11 +7,15 @@ const require = createRequire(import.meta.url);
 const AdmZip = require('adm-zip');
 const { Client } = pg;
 
-const host = process.env.PGHOST || 'db.hreotqowulxpchyxjlai.supabase.co';
+const host = process.env.PGHOST || `db.${process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID}.supabase.co`;
 const port = parseInt(process.env.PGPORT || '5432', 10);
 const user = process.env.PGUSER || 'postgres';
 const database = process.env.PGDATABASE || 'postgres';
-const password = process.env.PGPASSWORD || 'Aragon$27726&1226';
+const password = process.env.PGPASSWORD;
+if (!password) {
+  console.error('Missing PGPASSWORD environment variable.');
+  process.exit(1);
+}
 
 export const ALL_TABLES = [
   'reseller_profiles',

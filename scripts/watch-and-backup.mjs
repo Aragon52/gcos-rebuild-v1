@@ -2,11 +2,15 @@ import pg from 'pg';
 import fs from 'fs';
 const { Client } = pg;
 
-const host = process.env.PGHOST || 'db.hreotqowulxpchyxjlai.supabase.co';
+const host = process.env.PGHOST || `db.${process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID}.supabase.co`;
 const port = parseInt(process.env.PGPORT || '5432', 10);
 const user = process.env.PGUSER || 'postgres';
 const database = process.env.PGDATABASE || 'postgres';
-const password = process.env.PGPASSWORD || 'Aragon$27726&1226';
+const password = process.env.PGPASSWORD;
+if (!password) {
+  console.error('Missing PGPASSWORD environment variable.');
+  process.exit(1);
+}
 
 const tables = [
   'reseller_profiles',
@@ -27,8 +31,8 @@ async function tryBackup() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
-    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyZW90cW93dWx4cGNoeXhqbGFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMDk5NTYsImV4cCI6MjA5NDc4NTk1Nn0.BAjcUlh_--eDtKwLAA51kDcoJPd0vujQ9sqBdM6K7EY';
-    const res = await fetch('https://hreotqowulxpchyxjlai.supabase.co/rest/v1/reseller_profiles?select=reseller_id&limit=1', {
+    const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const res = await fetch(`${process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL}/rest/v1/reseller_profiles?select=reseller_id&limit=1`, {
       headers: {
         'apikey': anonKey,
         'Authorization': `Bearer ${anonKey}`

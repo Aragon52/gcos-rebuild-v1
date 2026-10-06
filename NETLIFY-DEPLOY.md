@@ -38,13 +38,13 @@ Go to **Site configuration → Environment variables** and add these.
 ### Values you can copy directly
 
 ```
-VITE_SUPABASE_URL=https://hreotqowulxpchyxjlai.supabase.co
-VITE_SUPABASE_PROJECT_ID=hreotqowulxpchyxjlai
+VITE_SUPABASE_URL=https://<your-project-id>.supabase.co
+VITE_SUPABASE_PROJECT_ID=<your-project-id>
 ```
 
 ### Values you must copy from Supabase
 
-1. Open https://supabase.com/dashboard/project/hreotqowulxpchyxjlai/settings/api
+1. Open https://supabase.com/dashboard/project/<your-project-id>/settings/api
 2. Copy the **anon public** key into:
 
 ```
