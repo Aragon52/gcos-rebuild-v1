@@ -1,7 +1,7 @@
 import pg from 'pg';
 const { Client } = pg;
 
-const host = process.env.PGHOST || 'db.hreotqowulxpchyxjlai.supabase.co';
+const host = process.env.PGHOST || `db.${process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID}.supabase.co`;
 const port = parseInt(process.env.PGPORT || '5432', 10);
 const user = process.env.PGUSER || 'postgres';
 const database = process.env.PGDATABASE || 'postgres';
