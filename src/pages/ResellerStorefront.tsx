@@ -16,6 +16,8 @@ import {
   SlidersHorizontal,
   ExternalLink,
   MessageCircle,
+  AlertTriangle,
+  Headset,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context-hooks";
 import { useToast } from "@/hooks/use-toast";
@@ -195,6 +197,35 @@ export default function ResellerStorefront() {
         >
           {t("common.backToHome", { defaultValue: "Back to Marketplace" })}
         </Link>
+      </div>
+    );
+  }
+
+  if (shop.isSuspended) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+        <div className="h-16 w-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive mb-4">
+          <AlertTriangle className="h-8 w-8" />
+        </div>
+        <h1 className="text-xl font-bold text-foreground">Retail Shop Suspended</h1>
+        <p className="text-sm text-muted-foreground mt-1.5 max-w-md">
+          This store ({shop.shopName}) is temporarily unavailable. If you are the store owner, please sign in to the Reseller Portal to contact customer service and request account review.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            to="/reseller/login"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            <Headset className="h-4 w-4" />
+            Reseller Login &amp; Contact Support
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            Back to Marketplace
+          </Link>
+        </div>
       </div>
     );
   }

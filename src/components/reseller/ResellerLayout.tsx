@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Navigate, useLocation, useNavigate } from "@/lib/router-compat";
-import { Bell, Headset } from "lucide-react";
+import { Bell, Headset, AlertTriangle } from "lucide-react";
 import { useReseller } from "@/lib/reseller-context-hooks";
 import ResellerSidebar from "./ResellerSidebar";
 import ResellerBottomNav from "./ResellerBottomNav";
@@ -115,12 +115,26 @@ export default function ResellerLayout({ children }: { children: React.ReactNode
     return <>{children}</>;
   }
 
+  const isMessagesPage = pathname.includes("/reseller/messages") || pathname.endsWith("/messages");
+  const isSuspended = Boolean((reseller as any)?.isSuspended);
+
   return (
     <div className="flex min-h-screen bg-background overflow-x-hidden">
-      {(reseller as any)?.isSuspended && <ResellerSuspendedOverlay />}
+      {isSuspended && !isMessagesPage && <ResellerSuspendedOverlay />}
       <NotificationDialog open={showNotifications} onClose={() => setShowNotifications(false)} />
       <ResellerSidebar />
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
+        {isSuspended && isMessagesPage && (
+          <div className="bg-destructive/15 border-b border-destructive/25 px-4 py-2.5 flex items-center justify-between text-xs text-destructive font-medium sticky top-0 z-40 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+              <span>Your retail shop is suspended. You are currently connected with Reseller Customer Care to discuss reactivation.</span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold text-[10px] uppercase tracking-wide">
+              Shop Suspended
+            </span>
+          </div>
+        )}
         {/* Promotional Banner */}
         <PromotionalBonusBanner />
 

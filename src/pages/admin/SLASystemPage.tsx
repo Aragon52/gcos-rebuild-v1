@@ -6,6 +6,8 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { StatCard } from "@/components/admin/StatCard";
 import { Globe, Users, Shield, Activity, Clock, CheckCircle, AlertCircle, BarChart3 } from "lucide-react";
 
+import { DatabaseBackupCard } from "@/components/admin/DatabaseBackupCard";
+
 interface Metric {
   name: string;
   target: string;
@@ -34,6 +36,9 @@ export default function SLASystemPage() {
           </Link>
         )}
       </div>
+
+      {/* Automated Nightly Database CSV Backup Card */}
+      <DatabaseBackupCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Overall Uptime" value="0%" icon={Activity} trend={{ value: 0, isPositive: true }} />

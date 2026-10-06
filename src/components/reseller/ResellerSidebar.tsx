@@ -33,29 +33,45 @@ export default function ResellerSidebar() {
       <div className="px-4 py-3 border-b border-border">
         <p className="text-xs text-muted-foreground">{t("reseller.shop")}</p>
         <p className="font-medium text-sm text-foreground truncate">{reseller.shopName}</p>
-        <span className={`inline-block mt-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${
-          reseller.verified ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"
-        }`}>
-          {reseller.verified ? `${reseller.level} • ${t("reseller.verified")}` : t("reseller.unverified")}
-        </span>
+        {reseller.isSuspended ? (
+          <span className="inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
+            Shop Suspended
+          </span>
+        ) : (
+          <span className={`inline-block mt-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+            reseller.verified ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"
+          }`}>
+            {reseller.verified ? `${reseller.level} • ${t("reseller.verified")}` : t("reseller.unverified")}
+          </span>
+        )}
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5">
         {menuItems.map(({ icon: Icon, label, href }) => {
           const active = pathname === href;
+          const isMessages = href.includes("/messages");
           return (
             <Link
               key={href}
               to={href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              className={`flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
                 active
                   ? "bg-primary/10 text-primary font-medium"
+                  : isMessages && reseller.isSuspended
+                  ? "text-primary font-semibold hover:bg-primary/5"
                   : "text-sidebar-foreground hover:bg-sidebar-accent"
               }`}
             >
-              <Icon className="h-4 w-4 flex-shrink-0" />
-              {label}
+              <div className="flex items-center gap-3">
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                {label}
+              </div>
+              {isMessages && reseller.isSuspended && (
+                <span className="text-[10px] bg-primary text-primary-foreground font-bold px-1.5 py-0.2 rounded">
+                  Support
+                </span>
+              )}
             </Link>
           );
         })}

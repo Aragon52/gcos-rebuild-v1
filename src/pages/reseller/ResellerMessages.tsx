@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "@/lib/router-compat";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Headset, Users, Send, ImagePlus, ShoppingBag, Clock } from "lucide-react";
+import { Headset, Users, Send, ImagePlus, ShoppingBag, Clock, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useReseller } from "@/lib/reseller-context-hooks";
 import { usePaginatedMessages } from "@/hooks/use-paginated-messages";
@@ -546,29 +546,55 @@ function CustomerChatPanel() {
 export default function ResellerMessages() {
   const { reseller } = useReseller();
   const { t } = useTranslation();
+  const isSuspended = Boolean((reseller as any)?.isSuspended);
   const location = useLocation();
   const locationState = location.state as { tab?: string } | undefined;
   const targetTab = locationState?.tab;
-  const [activeTab, setActiveTab] = useState(targetTab || "support");
+  const [activeTab, setActiveTab] = useState(isSuspended ? "support" : (targetTab || "support"));
 
   useEffect(() => {
-    if (targetTab) {
+    if (isSuspended) {
+      setActiveTab("support");
+    } else if (targetTab) {
       setActiveTab(targetTab);
     }
-  }, [targetTab]);
+  }, [targetTab, isSuspended]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-2rem)]">
       <div className="px-4 pt-4 pb-2">
         <h1 className="text-lg font-bold text-foreground">{t("reseller.messages")}</h1>
       </div>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+
+      {isSuspended && (
+        <div className="mx-4 mb-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-between text-xs text-destructive font-medium shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+            <span>
+              Your retail shop is suspended. You are currently connected with Reseller Customer Care to review and reactivate your shop.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold text-[10px] uppercase shrink-0">
+            Support Mode
+          </span>
+        </div>
+      )}
+
+      <Tabs value={activeTab} onValueChange={(tab) => {
+        if (isSuspended && tab === "customers") {
+          toast.error("Customer messages are unavailable while your retail shop is suspended. Please chat with Support.");
+          return;
+        }
+        setActiveTab(tab);
+      }} className="flex flex-col flex-1 min-h-0">
         <TabsList className="mx-4 mb-2 grid grid-cols-2">
           <TabsTrigger value="support" className="gap-1.5 text-xs">
             <Headset className="h-3.5 w-3.5" /> {t("reseller.support")}
+            {isSuspended && <span className="ml-1 text-[10px] font-bold text-primary">(Active)</span>}
           </TabsTrigger>
-          <TabsTrigger value="customers" className="gap-1.5 text-xs">
+          <TabsTrigger value="customers" disabled={isSuspended} className="gap-1.5 text-xs disabled:opacity-50">
             <Users className="h-3.5 w-3.5" /> {t("reseller.customers")}
+            {isSuspended && <span className="ml-1 text-[10px] text-muted-foreground">(Paused)</span>}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="support" className="flex-1 min-h-0 mt-0">

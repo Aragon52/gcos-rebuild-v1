@@ -16,6 +16,14 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+.env
+.env.*
+!.env.example
+
+# Large backups and archives
+backups/
+*.zip
+public/backups/*.zip
 
 # Wrangler / Cloudflare
 .wrangler/
