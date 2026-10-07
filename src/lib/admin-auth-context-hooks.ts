@@ -58,21 +58,10 @@ export const OWNER_ONLY_PATHS = new Set([
   "/admin/system/sessions",
 ]);
 
+import { isPageAllowed } from "./admin-permissions";
+
 export function isPathAllowed(role: SLARole, pathname: string, permissions?: string[] | null): boolean {
-  const p = pathname.replace(/\/$/, "") || "/admin";
-  if (role === "Owner") return true;
-  if (OWNER_ONLY_PATHS.has(p)) return false;
-
-  if (Array.isArray(permissions) && permissions.length > 0) {
-    const cleanPath = p.replace(/\/$/, "");
-    return permissions.some(allowed => {
-      const cleanAllowed = allowed.replace(/\/$/, "");
-      return cleanPath === cleanAllowed || cleanPath.startsWith(cleanAllowed + "/");
-    });
-  }
-
-  if (role === "Admin") return true;
-  return STAFF_ALLOWED_PATHS.has(p);
+  return isPageAllowed(pathname, role, permissions);
 }
 
 export interface AdminAuthContextType {

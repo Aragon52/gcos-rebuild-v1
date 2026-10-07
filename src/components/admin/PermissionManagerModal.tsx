@@ -189,6 +189,24 @@ export function PermissionManagerModal({
       queryClient.invalidateQueries({ queryKey: ["sla_admins"] });
       queryClient.invalidateQueries({ queryKey: ["sla_staff"] });
 
+      // If the modified account is the currently logged-in account, sync local session immediately
+      try {
+        const savedSession = localStorage.getItem("gcos_admin_session");
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          if (
+            parsed?.email?.toLowerCase() === account.email?.toLowerCase() ||
+            parsed?.uid === account.id
+          ) {
+            parsed.permissions = permissionsArray;
+            localStorage.setItem("gcos_admin_session", JSON.stringify(parsed));
+            window.dispatchEvent(new CustomEvent("admin_session_updated", { detail: parsed }));
+          }
+        }
+      } catch {
+        // ignore
+      }
+
       toast.success(
         `Permissions updated for ${account.name} (${permissionsArray.length} pages allowed)`
       );

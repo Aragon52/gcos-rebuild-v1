@@ -96,6 +96,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
                   setLoading(false);
                   trackAdminSessionLogin(parsed);
                 }
+                // Background refresh to guarantee permissions and status are up to date
+                if (user) {
+                  fetchAdminProfile(user.id, user.email || '').catch(console.error);
+                }
                 return;
               }
             }
@@ -147,10 +151,20 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    const handleSessionUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<AdminSession>;
+      if (customEvent.detail && mounted) {
+        setSession(customEvent.detail);
+      }
+    };
+
+    window.addEventListener("admin_session_updated", handleSessionUpdated);
+
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
       subscription.unsubscribe();
+      window.removeEventListener("admin_session_updated", handleSessionUpdated);
     };
   }, []);
 
@@ -284,14 +298,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           const { data: slaData } = await supabase
             .from(table)
             .select(`${field}, permissions`)
-            .ilike('email', normalizedEmail)
+            .or(`id.eq.${userId},email.ilike.${normalizedEmail}`)
             .limit(1);
             
           if (slaData && slaData.length > 0) {
             accountId = (slaData[0] as Record<string, any>)[field];
-            userPermissions = Array.isArray((slaData[0] as Record<string, any>).permissions) 
-              ? (slaData[0] as Record<string, any>).permissions 
-              : null;
+            const rawPerms = (slaData[0] as Record<string, any>).permissions;
+            userPermissions = Array.isArray(rawPerms) ? rawPerms : null;
           }
         } catch {
           // ignore

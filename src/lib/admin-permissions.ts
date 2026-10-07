@@ -306,22 +306,34 @@ export function isPageAllowed(
     return false;
   }
 
-  // If custom permissions array is set and not empty, check if path exists in permissions
-  if (Array.isArray(userPermissions) && userPermissions.length > 0) {
+  // If custom permissions array is set (even if empty []), strictly evaluate against it
+  if (Array.isArray(userPermissions)) {
+    if (userPermissions.length === 0) return false;
     const normalizedPerms = userPermissions.map(normalizeAdminPath);
-    // Exact match or sub-route match
-    return normalizedPerms.some(p => p === targetPath || targetPath.startsWith(p + "/"));
+    return normalizedPerms.some(p => {
+      // Special rule: "/admin" root overview MUST strictly match only "/admin", not every "/admin/*" subroute
+      if (p === "/admin") {
+        return targetPath === "/admin";
+      }
+      return p === targetPath || targetPath.startsWith(p + "/");
+    });
   }
 
   // Otherwise, fallback to role default permissions
   if (role === "Admin") {
     const defaultAdmins = DEFAULT_ADMIN_PAGES.map(normalizeAdminPath);
-    return defaultAdmins.some(p => p === targetPath || targetPath.startsWith(p + "/"));
+    return defaultAdmins.some(p => {
+      if (p === "/admin") return targetPath === "/admin";
+      return p === targetPath || targetPath.startsWith(p + "/");
+    });
   }
 
-  if (role === "Staff") {
+  if (role === "User" || (role as any) === "Staff") {
     const defaultStaffs = DEFAULT_STAFF_PAGES.map(normalizeAdminPath);
-    return defaultStaffs.some(p => p === targetPath || targetPath.startsWith(p + "/"));
+    return defaultStaffs.some(p => {
+      if (p === "/admin") return targetPath === "/admin";
+      return p === targetPath || targetPath.startsWith(p + "/");
+    });
   }
 
   return false;
