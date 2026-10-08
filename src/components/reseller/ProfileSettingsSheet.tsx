@@ -12,13 +12,21 @@ import {
 } from "@/components/ui/sheet";
 import { Camera, User, Lock, Mail, Phone, Eye, EyeOff, ChevronRight, CreditCard, Save } from "lucide-react";
 
-export default function ProfileSettingsSheet() {
+interface ProfileSettingsSheetProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function ProfileSettingsSheet({ open: controlledOpen, onOpenChange: setControlledOpen }: ProfileSettingsSheetProps = {}) {
   const { reseller, updateProfile, changePassword } = useReseller();
   const { toast } = useToast();
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (setControlledOpen || (() => {})) : setInternalOpen;
   const [firstName, setFirstName] = useState(reseller?.firstName || "");
   const [lastName, setLastName] = useState(reseller?.lastName || "");
   const [email, setEmail] = useState(reseller?.email || "");
@@ -68,11 +76,26 @@ export default function ProfileSettingsSheet() {
       return;
     }
     
-    const compressed = await compressImageToBase64(file);
-    if (compressed) {
-      setPreviewUrl(compressed);
-    } else {
-      toast({ title: "Error", description: "Failed to process image.", variant: "destructive" });
+    setIsUpdating(true);
+    try {
+      const compressed = await compressImageToBase64(file, 400);
+      if (compressed) {
+        setPreviewUrl(compressed);
+        await updateProfile({
+          profilePicture: compressed,
+        });
+        toast({ 
+          title: t("reseller.profilePictureUpdated", { defaultValue: "Profile Picture Saved" }), 
+          description: t("reseller.newPhotoSaved", { defaultValue: "Your new profile photo has been saved successfully!" }) 
+        });
+      } else {
+        toast({ title: "Error", description: "Failed to process image.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      console.error("Profile picture upload error:", err);
+      toast({ title: t("reseller.updateFailed"), description: err?.message || "Failed to save profile picture.", variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
     }
   };
 

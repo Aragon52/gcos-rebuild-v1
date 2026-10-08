@@ -717,13 +717,46 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
       if (reseller.bankInfo && !custom.bankInfo) custom.bankInfo = reseller.bankInfo;
 
       let customChanged = false;
-      if (updates.shopLogo !== undefined) { custom.shopLogo = updates.shopLogo; customChanged = true; }
-      if (updates.shopHeroBanner !== undefined) { custom.shopHeroBanner = updates.shopHeroBanner; customChanged = true; }
-      if (updates.storeTheme !== undefined) { custom.storeTheme = updates.storeTheme; customChanged = true; }
-      if (updates.profilePicture !== undefined) { custom.profilePicture = updates.profilePicture; customChanged = true; }
-      if (updates.phone !== undefined) { custom.phone = updates.phone; customChanged = true; }
-      if (updates.usdtAddress !== undefined) { custom.usdtAddress = updates.usdtAddress; customChanged = true; }
-      if (updates.bankInfo !== undefined) { custom.bankInfo = updates.bankInfo; customChanged = true; }
+      if (updates.shopLogo !== undefined) { 
+        custom.shopLogo = updates.shopLogo; 
+        profileUpdates.shop_logo = updates.shopLogo;
+        shopUpdates.shop_logo = updates.shopLogo;
+        customChanged = true; 
+      }
+      if (updates.shopHeroBanner !== undefined) { 
+        custom.shopHeroBanner = updates.shopHeroBanner; 
+        profileUpdates.shop_hero_banner = updates.shopHeroBanner;
+        shopUpdates.shop_hero_banner = updates.shopHeroBanner;
+        customChanged = true; 
+      }
+      if (updates.storeTheme !== undefined) { 
+        custom.storeTheme = updates.storeTheme; 
+        profileUpdates.store_theme = updates.storeTheme;
+        shopUpdates.store_theme = updates.storeTheme;
+        customChanged = true; 
+      }
+      if (updates.profilePicture !== undefined) { 
+        custom.profilePicture = updates.profilePicture; 
+        profileUpdates.profile_picture = updates.profilePicture;
+        userUpdates.avatar_url = updates.profilePicture;
+        customChanged = true; 
+      }
+      if (updates.phone !== undefined) { 
+        custom.phone = updates.phone; 
+        profileUpdates.phone = updates.phone;
+        userUpdates.phone = updates.phone;
+        customChanged = true; 
+      }
+      if (updates.usdtAddress !== undefined) { 
+        custom.usdtAddress = updates.usdtAddress; 
+        profileUpdates.usdc_address = updates.usdtAddress;
+        customChanged = true; 
+      }
+      if (updates.bankInfo !== undefined) { 
+        custom.bankInfo = updates.bankInfo; 
+        profileUpdates.bank_info = typeof updates.bankInfo === 'string' ? updates.bankInfo : JSON.stringify(updates.bankInfo);
+        customChanged = true; 
+      }
 
       if (customChanged) {
         profileUpdates.payment_method = JSON.stringify(custom);
@@ -732,16 +765,13 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
       // Synchronize updates including the generated shop slug into the component state
       const nextResellerState: Partial<ResellerProfile> = {
         ...updates,
-        phone: custom.phone !== undefined ? custom.phone : (updates.phone !== undefined ? updates.phone : (reseller.phone || '')),
-        ...(customChanged ? {
-          shopLogo: custom.shopLogo || '',
-          shopHeroBanner: custom.shopHeroBanner || '',
-          storeTheme: (custom.storeTheme as StoreTheme) || 'minimal',
-          profilePicture: custom.profilePicture || '',
-          phone: custom.phone || '',
-          usdtAddress: custom.usdtAddress || '',
-          bankInfo: custom.bankInfo || { bankName: '', accountName: '', accountNumber: '' },
-        } : {}),
+        phone: updates.phone !== undefined ? updates.phone : (custom.phone || reseller.phone || ''),
+        profilePicture: updates.profilePicture !== undefined ? updates.profilePicture : (custom.profilePicture || reseller.profilePicture || ''),
+        shopLogo: updates.shopLogo !== undefined ? updates.shopLogo : (custom.shopLogo || reseller.shopLogo || ''),
+        shopHeroBanner: updates.shopHeroBanner !== undefined ? updates.shopHeroBanner : (custom.shopHeroBanner || reseller.shopHeroBanner || ''),
+        storeTheme: updates.storeTheme !== undefined ? updates.storeTheme : ((custom.storeTheme as StoreTheme) || reseller.storeTheme || 'minimal'),
+        usdtAddress: updates.usdtAddress !== undefined ? updates.usdtAddress : (custom.usdtAddress || reseller.usdtAddress || ''),
+        bankInfo: updates.bankInfo !== undefined ? updates.bankInfo : (custom.bankInfo || reseller.bankInfo),
       };
       if (generatedSlug) {
         nextResellerState.shopSlug = generatedSlug;
@@ -751,19 +781,23 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
 
       if (Object.keys(profileUpdates).length > 0) {
         const { error: pErr } = await supabase.from('reseller_profiles').update(profileUpdates).eq('id', reseller.id);
-        if (pErr) console.error("[RESELLER_CONTEXT] Error updating reseller_profiles:", pErr);
+        if (pErr) {
+          console.error("[RESELLER_CONTEXT] Error updating reseller_profiles:", pErr);
+          throw new Error(pErr.message || "Failed to update reseller profile");
+        }
       }
       if (Object.keys(userUpdates).length > 0) {
         const { error: uErr } = await supabase.from('users').update(userUpdates).eq('id', reseller.id);
-        if (uErr) console.error("[RESELLER_CONTEXT] Error updating users:", uErr);
+        if (uErr) console.warn("[RESELLER_CONTEXT] Warning updating users:", uErr);
       }
       if (Object.keys(shopUpdates).length > 0) {
         const { error: sErr } = await supabase.from('retail_shops').upsert({ id: reseller.id, ...shopUpdates }, { onConflict: 'id' });
-        if (sErr) console.error("[RESELLER_CONTEXT] Error updating retail_shops:", sErr);
+        if (sErr) console.warn("[RESELLER_CONTEXT] Warning updating retail_shops:", sErr);
       }
 
     } catch (e) {
       console.error("[RESELLER_CONTEXT] Error updating profile:", e);
+      throw e;
     }
   };
 

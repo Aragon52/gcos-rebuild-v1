@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useReseller, LEVEL_PROFIT_MAP } from "@/lib/reseller-context-hooks";
-import { Palette, ChevronRight, Wallet, ArrowDownToLine, ArrowUpFromLine, Clock, LogOut, Package, Store } from "lucide-react";
+import { Palette, ChevronRight, Wallet, ArrowDownToLine, ArrowUpFromLine, Clock, LogOut, Package, Store, Camera } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const LEVEL_BADGE_MAP: Record<string, number> = {
@@ -30,6 +30,7 @@ export default function ResellerProfile() {
   const [showDeposit, setShowDeposit] = useState(false);
   const [depositTab, setDepositTab] = useState<"crypto" | "local">("crypto");
   const [showWithdrawal, setShowWithdrawal] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [searchParams] = useSearchParams();
   const suggestedAmount = searchParams.get("amount") ?? "";
 
@@ -62,15 +63,25 @@ export default function ResellerProfile() {
     <div className="px-4 py-5 space-y-4 max-w-lg mx-auto pb-24">
       {/* Account status card */}
       <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3">
-        <div className="h-12 w-12 rounded-full border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
-          {reseller.profilePicture ? (
-            <img src={reseller.profilePicture} alt="Profile" className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-sm font-bold text-muted-foreground">
-              {reseller.firstName?.[0]}{reseller.lastName?.[0]}
-            </span>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowProfileSettings(true)}
+          className="relative group focus:outline-none"
+          title={t("reseller.updateProfilePhoto", { defaultValue: "Click to change profile picture" })}
+        >
+          <div className="h-12 w-12 rounded-full border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center flex-shrink-0 group-hover:opacity-90 transition-opacity">
+            {reseller.profilePicture ? (
+              <img src={reseller.profilePicture} alt="Profile" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-sm font-bold text-muted-foreground">
+                {reseller.firstName?.[0]}{reseller.lastName?.[0]}
+              </span>
+            )}
+          </div>
+          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+            <Camera className="h-2.5 w-2.5" />
+          </div>
+        </button>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-card-foreground truncate">
             {reseller.firstName} {reseller.lastName}
@@ -156,7 +167,7 @@ export default function ResellerProfile() {
       </div>
 
       {/* Personal Settings Sheet */}
-      <ProfileSettingsSheet />
+      <ProfileSettingsSheet open={showProfileSettings} onOpenChange={setShowProfileSettings} />
 
       {/* Shop Reputation & Credibility */}
       <ShopReputationSheet />
