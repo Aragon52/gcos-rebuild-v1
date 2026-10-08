@@ -779,20 +779,57 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
       (nextResellerState as any).payment_method = JSON.stringify(custom);
       setReseller(prev => prev ? { ...prev, ...nextResellerState } : null);
 
-      if (Object.keys(profileUpdates).length > 0) {
-        const { error: pErr } = await supabase.from('reseller_profiles').update(profileUpdates).eq('id', reseller.id);
-        if (pErr) {
-          console.error("[RESELLER_CONTEXT] Error updating reseller_profiles:", pErr);
-          throw new Error(pErr.message || "Failed to update reseller profile");
+      // 1. First attempt update via dedicated server API endpoint (bypasses RLS limits)
+      let serverUpdated = false;
+      try {
+        const res = await fetch("/api/reseller/update-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resellerId: reseller.id,
+            firstName: updates.firstName,
+            lastName: updates.lastName,
+            phone: updates.phone,
+            profilePicture: updates.profilePicture,
+            shopName: updates.shopName,
+            shopLogo: updates.shopLogo,
+            shopHeroBanner: updates.shopHeroBanner,
+            storeTheme: updates.storeTheme,
+            usdtAddress: updates.usdtAddress,
+            bankInfo: updates.bankInfo,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.slug) {
+            nextResellerState.shopSlug = data.slug;
+            setReseller(prev => prev ? { ...prev, shopSlug: data.slug } : null);
+          }
+          serverUpdated = true;
+        } else {
+          console.warn("[RESELLER_CONTEXT] Server API returned non-ok status, trying fallback:", res.status);
         }
+      } catch (apiErr) {
+        console.warn("[RESELLER_CONTEXT] Server API call exception, trying fallback:", apiErr);
       }
-      if (Object.keys(userUpdates).length > 0) {
-        const { error: uErr } = await supabase.from('users').update(userUpdates).eq('id', reseller.id);
-        if (uErr) console.warn("[RESELLER_CONTEXT] Warning updating users:", uErr);
-      }
-      if (Object.keys(shopUpdates).length > 0) {
-        const { error: sErr } = await supabase.from('retail_shops').upsert({ id: reseller.id, ...shopUpdates }, { onConflict: 'id' });
-        if (sErr) console.warn("[RESELLER_CONTEXT] Warning updating retail_shops:", sErr);
+
+      // 2. Direct client-side update fallback
+      if (!serverUpdated) {
+        if (Object.keys(profileUpdates).length > 0) {
+          const { error: pErr } = await supabase.from('reseller_profiles').update(profileUpdates).eq('id', reseller.id);
+          if (pErr) {
+            console.error("[RESELLER_CONTEXT] Error updating reseller_profiles:", pErr);
+            throw new Error(pErr.message || "Failed to update reseller profile");
+          }
+        }
+        if (Object.keys(userUpdates).length > 0) {
+          const { error: uErr } = await supabase.from('users').update(userUpdates).eq('id', reseller.id);
+          if (uErr) console.warn("[RESELLER_CONTEXT] Warning updating users:", uErr);
+        }
+        if (Object.keys(shopUpdates).length > 0) {
+          const { error: sErr } = await supabase.from('retail_shops').upsert({ id: reseller.id, ...shopUpdates }, { onConflict: 'id' });
+          if (sErr) console.warn("[RESELLER_CONTEXT] Warning updating retail_shops:", sErr);
+        }
       }
 
     } catch (e) {

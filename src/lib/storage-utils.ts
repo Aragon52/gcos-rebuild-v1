@@ -61,6 +61,49 @@ export async function uploadImage(path: string, data: string | File): Promise<st
 }
 
 /**
+ * Uploads a reseller image asset (avatar, logo, or banner) to Supabase Storage,
+ * compressing it first if needed and returning a public CDN URL.
+ * Falls back to optimized compressed base64 if storage is unavailable.
+ */
+export async function uploadResellerAsset(
+  userId: string,
+  assetType: "avatar" | "logo" | "banner",
+  fileOrBase64: File | string,
+  maxDim = 1200
+): Promise<string> {
+  // If already an HTTP/HTTPS URL, return as-is
+  if (typeof fileOrBase64 === "string" && fileOrBase64.startsWith("http")) {
+    return fileOrBase64;
+  }
+
+  try {
+    let preparedData: string | File = fileOrBase64;
+    if (fileOrBase64 instanceof File) {
+      const compressed = await compressImageToBase64(fileOrBase64, maxDim);
+      if (compressed) {
+        preparedData = compressed;
+      }
+    }
+
+    const cleanId = userId || "anonymous";
+    const timestamp = Date.now();
+    const filePath = `resellers/${cleanId}/${assetType}_${timestamp}.jpg`;
+
+    const publicUrl = await uploadImage(filePath, preparedData);
+    if (publicUrl && publicUrl.startsWith("http")) {
+      return publicUrl;
+    }
+  } catch (err) {
+    console.warn(`[STORAGE] Storage upload error for ${assetType}, using base64 fallback:`, err);
+  }
+
+  // Fallback to base64
+  if (typeof fileOrBase64 === "string") return fileOrBase64;
+  const fallback = await compressImageToBase64(fileOrBase64, Math.min(maxDim, 600));
+  return fallback || "";
+}
+
+/**
  * Compresses an image file to a base64 string.
  * This is useful for storing images directly in Firestore to bypass Storage rules.
  * The image is resized to max 800x800 and compressed to JPEG with 0.6 quality.

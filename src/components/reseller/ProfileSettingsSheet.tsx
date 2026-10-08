@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useReseller } from "@/lib/reseller-context-hooks";
 import { useToast } from "@/hooks/use-toast";
-import { compressImageToBase64 } from "@/lib/storage-utils";
+import { compressImageToBase64, uploadResellerAsset } from "@/lib/storage-utils";
 import { useTranslation } from "react-i18next";
 import {
   Sheet,
@@ -78,11 +78,11 @@ export default function ProfileSettingsSheet({ open: controlledOpen, onOpenChang
     
     setIsUpdating(true);
     try {
-      const compressed = await compressImageToBase64(file, 400);
-      if (compressed) {
-        setPreviewUrl(compressed);
+      const uploadedUrl = await uploadResellerAsset(reseller.id, "avatar", file, 400);
+      if (uploadedUrl) {
+        setPreviewUrl(uploadedUrl);
         await updateProfile({
-          profilePicture: compressed,
+          profilePicture: uploadedUrl,
         });
         toast({ 
           title: t("reseller.profilePictureUpdated", { defaultValue: "Profile Picture Saved" }), 

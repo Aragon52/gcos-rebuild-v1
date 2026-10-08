@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "@/lib/router-compat";
 import { useReseller, type StoreTheme } from "@/lib/reseller-context-hooks";
 import { toast } from "sonner";
-import { compressImageToBase64 } from "@/lib/storage-utils";
+import { compressImageToBase64, uploadResellerAsset } from "@/lib/storage-utils";
 import { getStorefrontUrl, resellerPath } from "@/lib/subdomain";
 import {
   Save,
@@ -116,10 +116,10 @@ export default function ResellerShopCustomization() {
       });
       return;
     }
-    const compressed = await compressImageToBase64(file, 600);
-    if (compressed) {
-      setLogoPreview(compressed);
-      toast.success(t("reseller.logoSelected", { defaultValue: "Logo selected" }));
+    const uploadedUrl = await uploadResellerAsset(reseller.id, "logo", file, 600);
+    if (uploadedUrl) {
+      setLogoPreview(uploadedUrl);
+      toast.success(t("reseller.logoSelected", { defaultValue: "Logo selected. Click 'Save Shop Decoration' to publish." }));
     } else {
       toast.error(t("common.error", { defaultValue: "Error" }), {
         description: t("common.failedToProcessImage", { defaultValue: "Failed to process image" }),
@@ -134,10 +134,10 @@ export default function ResellerShopCustomization() {
       });
       return;
     }
-    const compressed = await compressImageToBase64(file, 1200);
-    if (compressed) {
-      setBannerPreview(compressed);
-      toast.success(t("reseller.bannerSelected", { defaultValue: "Banner selected" }));
+    const uploadedUrl = await uploadResellerAsset(reseller.id, "banner", file, 1200);
+    if (uploadedUrl) {
+      setBannerPreview(uploadedUrl);
+      toast.success(t("reseller.bannerSelected", { defaultValue: "Banner selected. Click 'Save Shop Decoration' to publish." }));
     } else {
       toast.error(t("common.error", { defaultValue: "Error" }), {
         description: t("common.failedToProcessImage", { defaultValue: "Failed to process image" }),
